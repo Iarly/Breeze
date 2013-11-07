@@ -38,7 +38,7 @@ var Validator = (function () {
 
     @class Validator
     **/
-        
+
     /**
     Validator constructor - This method is used to create create custom validations.  Several
     basic "Validator" construction methods are also provided as static methods to this class. These methods
@@ -150,7 +150,7 @@ var Validator = (function () {
     };
     var proto = ctor.prototype;
     proto._$typeName = "Validator";
-    
+
     /**
     The name of this validator.
 
@@ -199,7 +199,7 @@ var Validator = (function () {
             currentContext = this.context;
         }
         this.currentContext = currentContext;
-        
+
         try {
             if (this.valFn(value, currentContext)) {
                 return null;
@@ -212,7 +212,7 @@ var Validator = (function () {
         }
     };
 
-        
+
     // context.value is not avail unless validate was called first.
 
     /**
@@ -263,7 +263,7 @@ var Validator = (function () {
     @static
     @param validator {Validator} Validator to register.
     **/
-    ctor.register = function(validator) {
+    ctor.register = function (validator) {
         __config.registerFunction(function () { return validator; }, "Validator." + validator.name);
     };
 
@@ -274,7 +274,7 @@ var Validator = (function () {
     @param validatorFactory {Function} A function that optionally takes a context property and returns a Validator instance.
     @param name {String} The name of the validator.
     **/
-    ctor.registerFactory = function(validatorFn, name) {
+    ctor.registerFactory = function (validatorFn, name) {
         __config.registerFunction(validatorFn, "Validator." + name);
     };
 
@@ -331,6 +331,8 @@ var Validator = (function () {
     ctor.required = function () {
         var valFn = function (v, ctx) {
             if (typeof v === "string") {
+                if (ctx.property.dataType == breeze.DataType.Guid && !ctx.property.isNullable)
+                    return v.length > 0 && v != "00000000-0000-0000-0000-000000000000";
                 if (ctx && ctx.allowEmptyStrings) return true;
                 return v.length > 0;
             } else {
@@ -407,7 +409,7 @@ var Validator = (function () {
             if (v == null) return true;
             return (typeof v === "string");
         };
-        return new ctor("string", valFn );
+        return new ctor("string", valFn);
     };
 
     /**
@@ -442,8 +444,8 @@ var Validator = (function () {
     @static
     @return {Validator} A new Validator
     **/
-    ctor.duration = function() {
-        var valFn = function(v) {
+    ctor.duration = function () {
+        var valFn = function (v) {
             if (v == null) return true;
             return __isDuration(v);
         };
@@ -495,7 +497,7 @@ var Validator = (function () {
             }
             return (typeof v === "number") && (!isNaN(v)) && Math.floor(v) === v;
         };
-        return new ctor("integer", valFn, context );
+        return new ctor("integer", valFn, context);
     };
 
     /**
@@ -509,7 +511,7 @@ var Validator = (function () {
     @static
     @return {Validator} A new Validator
     **/
-    ctor.int32 = function(context) {
+    ctor.int32 = function (context) {
         return intRangeValidatorCtor("int32", INT32_MIN, INT32_MAX, context)();
     };
 
@@ -563,7 +565,7 @@ var Validator = (function () {
             if (v == null) return true;
             return (v === true) || (v === false);
         };
-        return new ctor("bool", valFn );
+        return new ctor("bool", valFn);
     };
 
     ctor.none = function () {
@@ -601,7 +603,7 @@ var Validator = (function () {
                 return __isDate(v);
             }
         };
-        return new ctor("date", valFn );
+        return new ctor("date", valFn);
     };
 
     /**
@@ -619,7 +621,7 @@ var Validator = (function () {
     @param [context] {Object} optional parameters to pass through to validation constructor
     @return {Validator} A new Validator
     **/
-    ctor.creditCard = function(context) {
+    ctor.creditCard = function (context) {
         function valFn(v) {
             if (v == null || v === '') return true;
             if (typeof (v) !== 'string') return false;
@@ -651,7 +653,7 @@ var Validator = (function () {
     @param context.expression {String} String form of the regular expression to apply
     @return {Validator} A new Validator
     **/
-    ctor.regularExpression = function(context) {
+    ctor.regularExpression = function (context) {
         function valFn(v, ctx) {
             // do not invalidate if empty; use a separate required test
             if (v == null || v === '') return true;
@@ -679,7 +681,7 @@ var Validator = (function () {
     @param [context] {Object} optional parameters to pass through to validation constructor
     @return {Validator} A new Validator
     **/
-    ctor.emailAddress = function(context) {
+    ctor.emailAddress = function (context) {
         // See https://github.com/srkirkland/DataAnnotationsExtensions/blob/master/DataAnnotationsExtensions/EmailAttribute.cs
         var reEmailAddress = /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?$/;
         return makeRegExpValidator('emailAddress', reEmailAddress, null, context);
@@ -708,7 +710,7 @@ var Validator = (function () {
     @param [context] {Object} optional parameters to pass through to validation constructor
     @return {Validator} A new Validator
     **/
-    ctor.phone = function(context) {
+    ctor.phone = function (context) {
         // See https://github.com/srkirkland/DataAnnotationsExtensions/blob/master/DataAnnotationsExtensions/Expressions.cs
         var rePhone = /^((\+|(0(\d+)?[-/.\s]?))[1-9]\d{0,2}[-/.\s]?)?((\(\d{1,6}\)|\d{1,6})[-/.\s]?)?(\d+[-/.\s]?)+\d+$/;
         return makeRegExpValidator('phone', rePhone, null, context);
@@ -727,7 +729,7 @@ var Validator = (function () {
     @param [context] {Object} optional parameters to pass through to validation constructor
     @return {Validator} A new Validator
     **/
-    ctor.url = function(context) {
+    ctor.url = function (context) {
         //See https://github.com/srkirkland/DataAnnotationsExtensions/blob/master/DataAnnotationsExtensions/UrlAttribute.cs
         var reUrlProtocolRequired = /^(https?|ftp):\/\/(((([a-zA-Z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-fA-F]{2})|[!\$&'\(\)\*\+,;=]|:)*@)?(((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5]))|([a-zA-Z][\-a-zA-Z0-9]*)|((([a-zA-Z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-zA-Z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-zA-Z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-zA-Z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-zA-Z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-zA-Z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-zA-Z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-zA-Z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?)(:\d*)?)(\/((([a-zA-Z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-fA-F]{2})|[!\$&'\(\)\*\+,;=]|:|@)+(\/(([a-zA-Z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-fA-F]{2})|[!\$&'\(\)\*\+,;=]|:|@)*)*)?)?(\?((([a-zA-Z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-fA-F]{2})|[!\$&'\(\)\*\+,;=]|:|@)|[\uE000-\uF8FF]|\/|\?)*)?(\#((([a-zA-Z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-fA-F]{2})|[!\$&'\(\)\*\+,;=]|:|@)|\/|\?)*)?$/;
         return makeRegExpValidator('url', reUrlProtocolRequired, null, context);
@@ -766,7 +768,7 @@ var Validator = (function () {
             ctor.messageTemplates[validatorName] = defaultMessage;
         }
         var re = (typeof (expression) === 'string') ? new RegExp(expression) : expression;
-        var valFn = function(v) {
+        var valFn = function (v) {
             // do not invalidate if empty; use a separate required test
             if (v == null || v === '') return true;
             if (typeof (v) !== 'string') return false;
@@ -774,7 +776,7 @@ var Validator = (function () {
         };
         return new ctor(validatorName, valFn, context);
     };
-    
+
     // register all validators
     __objectForEach(ctor, function (key, value) {
         if (typeof (value) !== "function") {
@@ -818,7 +820,7 @@ var Validator = (function () {
         return function () {
             var valFn = function (v, ctx) {
                 if (v == null) return true;
-                if (typeof v === "string" && ctx && ctx.allowString)  {
+                if (typeof v === "string" && ctx && ctx.allowString) {
                     v = parseInt(v, 0);
                 }
                 if ((typeof v === "number") && (!isNaN(v)) && Math.floor(v) === v) {
@@ -838,7 +840,7 @@ var Validator = (function () {
     }
 
     return ctor;
-}) ();
+})();
 
 var ValidationError = (function () {
     /**
@@ -846,7 +848,7 @@ var ValidationError = (function () {
 
     @class ValidationError
     **/
-        
+
     /**
     Constructs a new ValidationError
     @method <ctor> ValidationError
@@ -864,10 +866,10 @@ var ValidationError = (function () {
         var context = context || {};
         this.context = context;
         this.errorMessage = errorMessage;
-        
-        this.property = context.property 
+
+        this.property = context.property
         this.propertyName = context.propertyName || (context.property && context.property.name);
-        
+
         if (key) {
             this.key = key;
         } else {
@@ -876,35 +878,35 @@ var ValidationError = (function () {
         this.isServerError = false;
     };
 
-        
+
     /**
     The Validator associated with this ValidationError.
 
     __readOnly__
     @property validator {Validator}
     **/
-        
+
     /**
     A 'context' object associated with this ValidationError.
 
     __readOnly__
     @property context {Object}
     **/
-        
+
     /**
     The DataProperty or NavigationProperty associated with this ValidationError.
 
     __readOnly__
     @property property {DataProperty|NavigationProperty}
     **/
-        
+
     /**
     The property name associated with this ValidationError. This will be a "property path" for any properties of a complex object.
 
     __readOnly__
     @property propertyName {String}
     **/
-        
+
     /**
     The error message associated with the ValidationError.
 
@@ -943,7 +945,7 @@ var ValidationError = (function () {
 
     return ctor;
 })();
-    
+
 breeze.Validator = Validator;
 breeze.ValidationError = ValidationError;
- 
+

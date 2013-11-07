@@ -264,23 +264,25 @@ var EntityAspect = (function () {
     proto.rejectChanges = function () {
         var entity = this.entity;
         var entityManager = this.entityManager;
-        // we do not want PropertyChange or EntityChange events to occur here
-        __using(entityManager, "isRejectingChanges", true, function () {
-            rejectChangesCore(entity);
-        });
-        if (this.entityState.isAdded()) {
-            // next line is needed because the following line will cause this.entityManager -> null;
-            entityManager.detachEntity(entity);
-            // need to tell em that an entity that needed to be saved no longer does.
-            entityManager._notifyStateChange(entity, false);
-        } else {
-            if (this.entityState.isDeleted()) {
-                this.entityManager._linkRelatedEntities(entity);
+        if (entityManager) {
+            // we do not want PropertyChange or EntityChange events to occur here
+            __using(entityManager, "isRejectingChanges", true, function () {
+                rejectChangesCore(entity);
+            });
+            if (this.entityState.isAdded()) {
+                // next line is needed because the following line will cause this.entityManager -> null;
+                entityManager.detachEntity(entity);
+                // need to tell em that an entity that needed to be saved no longer does.
+                entityManager._notifyStateChange(entity, false);
+            } else {
+                if (this.entityState.isDeleted()) {
+                    this.entityManager._linkRelatedEntities(entity);
+                }
+                this.setUnchanged();
+                // propertyChanged propertyName is null because more than one property may have changed.
+                this.propertyChanged.publish({ entity: entity, propertyName: null });
+                this.entityManager.entityChanged.publish({ entityAction: EntityAction.RejectChanges, entity: entity });
             }
-            this.setUnchanged();
-            // propertyChanged propertyName is null because more than one property may have changed.
-            this.propertyChanged.publish({ entity: entity, propertyName: null });
-            this.entityManager.entityChanged.publish({ entityAction: EntityAction.RejectChanges, entity: entity });
         }
     };
 
@@ -753,21 +755,29 @@ var EntityAspect = (function () {
                 entity.setProperty(np.name, null);
             }
         } else {
-            // relatedEntity was detached.
-            // need to clear child np without clearing child fk or changing the entityState of the child
-            var em = entity.entityAspect.entityManager;
+            // relatedEntity was detached.            
+            var property = np.relatedDataProperties[0];
 
-            var fkNames = np.foreignKeyNames;
-            if (fkNames) {
-                var fkVals = fkNames.map(function (fkName) {
-                    return entity.getProperty(fkName);
-                });
+            if (property && !property.isNullable && entity.entityAspect.entityState.isAdded()) {
+                // if property is not nullable and entity is added detach them...
+                entity.entityAspect.setDetached();
             }
-            entity.setProperty(np.name, null);
-            if (fkNames) {
-                fkNames.forEach(function (fkName, i) {
-                    entity.setProperty(fkName, fkVals[i])
-                });
+            else {
+                // need to clear child np without clearing child fk or changing the entityState of the child
+                var em = entity.entityAspect.entityManager;
+
+                var fkNames = np.foreignKeyNames;
+                if (fkNames) {
+                    var fkVals = fkNames.map(function (fkName) {
+                        return entity.getProperty(fkName);
+                    });
+                }
+                entity.setProperty(np.name, null);
+                if (fkNames) {
+                    fkNames.forEach(function (fkName, i) {
+                        entity.setProperty(fkName, fkVals[i])
+                    });
+                }
             }
 
         }

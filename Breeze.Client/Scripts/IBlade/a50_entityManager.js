@@ -2083,6 +2083,7 @@ var EntityManager = (function () {
                 targetEntity.entityAspect.entityState = EntityState.Unchanged;
                 targetEntity.entityAspect.originalValues = {};
                 targetEntity.entityAspect.propertyChanged.publish({ entity: targetEntity, propertyName: null });
+                targetEntity.entityAspect.resetLinks();
                 var action = isSaving ? EntityAction.MergeOnSave : EntityAction.MergeOnQuery;
                 em.entityChanged.publish({ entityAction: action, entity: targetEntity });
                 // this is needed to handle an overwrite or a modified entity with an unchanged entity 
@@ -2479,8 +2480,9 @@ var EntityManager = (function () {
          * Runs through the navigation properties to fill the entity. If the entity is someone's daughter and is new, 
          * is not generated directly and only in a relationship of another entity.
          */
-        var returnsNull = false;
         stype.navigationProperties.forEach(function (dp) {
+            if (options.isIgnored)
+                return;
             if (dp.isScalar) {
                 var child = structObj.getProperty(dp.name);
                 if (child !== null && readedAssociations.indexOf(child) == -1) {
@@ -2503,13 +2505,18 @@ var EntityManager = (function () {
 
                 complexObjs.map(function (child) {
                     if (child !== null && readedAssociations.indexOf(child) == -1) {
-                        if (child.entityAspect.entityState.isAdded())
-                            rawObject[dp.nameOnServer].push(unwrapInstance(child, isOData, { readedAssociations: readedAssociations, isChildren: true, isIgnored: false }));
+                        if (child.entityAspect.entityState.isAdded()) {
+                            var entity = unwrapInstance(child, isOData, { readedAssociations: readedAssociations, isChildren: true, isIgnored: false });
+                            entity.__metadata = {
+                                type: child.entityType.namespace + "." + child.entityType.shortName
+                            };
+                            rawObject[dp.nameOnServer].push(entity);
+                        }
                         else {
                             rawObject[dp.nameOnServer].push({
                                 __metadata: {
                                     uri: child.entityAspect.extraMetadata.uri,
-                                    content_type: child.entityAspect.extraMetadata.type,
+                                    content_type: child.entityAspect.extraMetadata.type
                                 }
                             });
                         }
@@ -2518,8 +2525,12 @@ var EntityManager = (function () {
 
             }
         });
-        if (returnsNull)
+
+        if (options.isIgnored) {
+            var i = readedAssociations.indexOf(structObj);
+            readedAssociations.splice(i, 1);
             return null;
+        }
         return rawObject;
     }
 

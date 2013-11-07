@@ -52,14 +52,35 @@
             }
         }
 
-        OData.read(url,
-            function (data, response) {
-                return deferred.resolve({ results: data.results, inlineCount: data.__count });
-            },
-            function (error) {
-                return deferred.reject(createError(error, mappingContext.url));
+        var serviceUrl = mappingContext.entityManager.serviceName;
+        var methodUrl = url.replace(serviceUrl, '');
+
+        OData.request({
+            requestUri: serviceUrl + "/$batch",
+            method: "POST",
+            data: {
+                __batchRequests: [
+                   { requestUri: methodUrl, method: "GET" }
+                ]
             }
-        );
+        }, function (batchData, response) {
+            var response = batchData.__batchResponses[0];
+            var data = response.data;
+            if (response.statusCode == 200)
+                return deferred.resolve({ results: data.results, inlineCount: data.__count });
+            return deferred.reject(createError(response.statusText, mappingContext.url));
+        },
+        function (error) {
+            return deferred.reject(createError(error, mappingContext.url));
+        }, OData.batchHandler);
+        //OData.read(url,
+        //    function (data, response) {
+        //        return deferred.resolve({ results: data.results, inlineCount: data.__count });
+        //    },
+        //    function (error) {
+        //        return deferred.reject(createError(error, mappingContext.url));
+        //    }
+        //);
         return deferred.promise;
     };
 
@@ -112,10 +133,15 @@
 
         var helper = saveContext.entityManager.helper;
         var url = saveContext.dataService.makeUrl("$batch");
-        
+
         var requestData = createChangeRequests(saveContext, saveBundle);
         var innerEntities = requestData.__innerEntities || [];
         delete requestData.__innerEntities;
+
+        if (requestData.__batchRequests[0].__changeRequests.length == 0) {
+            deferred.resolve({ entities: innerEntities, keyMappings: [] });
+            return deferred.promise;
+        }
 
         var tempKeys = saveContext.tempKeys;
         var contentKeys = saveContext.contentKeys;
