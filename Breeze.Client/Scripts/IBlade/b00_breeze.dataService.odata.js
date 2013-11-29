@@ -230,6 +230,10 @@
         var helper = entityManager.helper;
         var id = 0;
         saveBundle.entities.forEach(function (entity) {
+            if (createdCREntities.indexOf(entity) > -1) {
+                innerEntities.push(entity);
+                return;
+            }
             createdCREntities.push(entity);
             var aspect = entity.entityAspect;
             id = id + 1; // we are deliberately skipping id=0 because Content-ID = 0 seems to be ignored.
@@ -291,7 +295,7 @@
             }
 
             if (aspect.entityState.isAdded()) {
-                var options = {};
+                var options = { readedAssociations: createdCREntities };
                 insertRequest(request, entity.entityType);
                 request.method = "POST";
                 request.data = helper.unwrapInstance(entity, true, options);
