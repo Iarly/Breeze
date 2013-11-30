@@ -39,6 +39,8 @@ function __objectMapToArray(obj, kvFn) {
     return results;
 }
 
+
+
 // Functional extensions 
 
 // can be used like: persons.filter(propEq("firstName", "John"))
@@ -66,15 +68,22 @@ function __getOwnPropertyValues(source) {
     return result;
 }
 
-function __extend(target, source) {
+function __extend(target, source, propNames) {
     if (!source) return target;
-    for (var name in source) {
-        if (__hasOwnProperty(source, name)) {
-            target[name] = source[name];
+    if (propNames) {
+        propNames.forEach(function (propName) {
+            target[propName] = source[propName];
+        })
+    } else {
+        for (var propName in source) {
+            if (__hasOwnProperty(source, propName)) {
+                target[propName] = source[propName];
+            }
         }
     }
     return target;
 }
+
 
 function __updateWithDefaults(target, defaults) {
     for (var name in defaults) {
@@ -122,6 +131,40 @@ function __toJson(source, template) {
     return target;
 }
 
+function __toJSONSafe(obj, replacer) {
+    if (obj !== Object(obj)) return obj; // primitive value
+    if (obj._$visited) return undefined;
+    if (obj.toJSON) {
+        var newObj = obj.toJSON();
+        if (newObj !== Object(newObj)) return newObj; // primitive value
+        if (newObj !== obj) return __toJSONSafe(newObj);
+        // toJSON returned the object unchanged.
+        obj = newObj;
+    }
+    obj._$visited = true;
+    var result;
+    if (obj instanceof Array) {
+        result = obj.map(function (o) { return __toJSONSafe(o, replacer); } );
+    } else if (typeof (obj) === "function") {
+        result = undefined;
+    } else {
+        var result = {};
+        for (var prop in obj) {
+            if (prop === "_$visited") continue;
+            var val = obj[prop];
+            if (replacer) {
+                val = replacer(prop, val);
+                if (val === undefined) continue;
+            }
+            var val = __toJSONSafe(val);
+            if (val === undefined) continue;
+            result[prop] = val;
+        }
+    }
+    delete obj._$visited;
+    return result;
+}
+
 // resolves the values of a list of properties by checking each property in multiple sources until a value is found.
 function __resolveProperties(sources, propertyNames) {
     var r = {};
@@ -145,7 +188,7 @@ function __resolveProperties(sources, propertyNames) {
 // array functions
 
 function __toArray(item) {
-    if (!item) {
+    if (item==null) {
         return [];
     } else if (Array.isArray(item)) {
         return item;
@@ -153,6 +196,22 @@ function __toArray(item) {
         return [item];
     }
 }
+
+// a version of Array.map that doesn't require an array, i.e. works on arrays and scalars.
+function __map(items, fn) {
+    if (items == null) return items;
+    var result;
+    if (Array.isArray(items)) {
+        result = []
+        items.map(function (v, ix) {
+            result[ix] = fn(v, ix);
+        });
+    } else {
+        result = fn(items);
+    }
+    return result;
+}
+
 
 function __arrayFirst(array, predicate) {
     for (var i = 0, j = array.length; i < j; i++) {
@@ -187,25 +246,23 @@ function __arrayRemoveItem(array, predicateOrItem, shouldRemoveMultiple) {
 }
 
 function __arrayZip(a1, a2, callback) {
-
     var result = [];
     var n = Math.min(a1.length, a2.length);
     for (var i = 0; i < n; ++i) {
         result.push(callback(a1[i], a2[i]));
     }
-
     return result;
 }
 
-function __arrayDistinct(array) {
-    array = array || [];
-    var result = [];
-    for (var i = 0, j = array.length; i < j; i++) {
-        if (result.indexOf(array[i]) < 0)
-            result.push(array[i]);
-    }
-    return result;
-}
+//function __arrayDistinct(array) {
+//    array = array || [];
+//    var result = [];
+//    for (var i = 0, j = array.length; i < j; i++) {
+//        if (result.indexOf(array[i]) < 0)
+//            result.push(array[i]);
+//    }
+//    return result;
+//}
 
 // Not yet needed
 //// much faster but only works on array items with a toString method that
@@ -399,8 +456,6 @@ function __isGuid(value) {
     
 function __isDuration(value) {
     return (typeof value === "string") && /^(-|)?P[T]?[\d\.,\-]+[YMDTHS]/.test(value);
-    // old version
-    // return (typeof value === "string") && /^(-|)?P([0-9]+Y|)?([0-9]+M|)?([0-9]+D|)?T?([0-9]+H|)?([0-9]+M|)?([0-9]+S|)?/.test(value);
 }
 
 function __isEmpty(obj) {
@@ -456,7 +511,6 @@ function uncurry(f) {
     };
 }
 
-
 // shims
 
 if (!Object.create) {
@@ -476,7 +530,7 @@ core.objectForEach= __objectForEach;
 
 core.extend = __extend;
 core.propEq = __propEq;
-core.pluck  = __pluck;
+core.pluck = __pluck;
 
 core.arrayEquals = __arrayEquals;
 // core.arrayDistinct = __arrayDistinct;
@@ -503,6 +557,8 @@ core.isNumeric= __isNumeric;
 core.stringStartsWith= __stringStartsWith;
 core.stringEndsWith= __stringEndsWith;
 core.formatString = __formatString;
+
+core.toJSONSafe = __toJSONSafe;
 
 core.parent = breeze;
 breeze.core = core;

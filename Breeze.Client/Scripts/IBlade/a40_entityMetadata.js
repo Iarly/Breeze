@@ -37,12 +37,14 @@ var MetadataStore = (function () {
     between client and server. Uses the NamingConvention.defaultInstance if not specified.
     @param [config.localQueryComparisonOptions=LocalQueryComparisonOptions.defaultInstance] {LocalQueryComparisonOptions} The LocalQueryComparisonOptions to be
     used when performing "local queries" in order to match the semantics of queries against a remote service. 
+    @param [config.serializerFn] A function that is used to mediate the serialization of instances of this type.
     **/
     var ctor = function (config) {
         config = config || { };
         assertConfig(config)
             .whereParam("namingConvention").isOptional().isInstanceOf(NamingConvention).withDefault(NamingConvention.defaultInstance)
             .whereParam("localQueryComparisonOptions").isOptional().isInstanceOf(LocalQueryComparisonOptions).withDefault(LocalQueryComparisonOptions.defaultInstance)
+            .whereParam("serializerFn").isOptional().isFunction()
             .applyAll(this);
         this.dataServices = []; // array of dataServices;
         this._resourceEntityTypeMap = {}; // key is resource name - value is qualified entityType name
@@ -56,6 +58,29 @@ var MetadataStore = (function () {
     var proto = ctor.prototype;
     proto._$typeName = "MetadataStore";
     ctor.ANONTYPE_PREFIX = "_IB_";
+
+    /**
+    General purpose property set method
+    @example
+        // assume em1 is an EntityManager containing a number of existing entities.
+       
+        em1.metadataStore.setProperties( {
+            version: "6.1.3",
+            serializerFn: function(prop, value) {
+            return (prop.isUnmapped) ? undefined : value;
+            }
+        )};
+    @method setProperties
+    @param config [object]
+        @param [config.name] {String} A name for the collection of metadata in this store.
+        @param [config.serializerFn] A function that is used to mediate the serialization of instances of this type.
+    **/
+    proto.setProperties = function (config) {
+        assertConfig(config)
+            .whereParam("name").isString().isOptional()
+            .whereParam("serializerFn").isFunction().isOptional()
+            .applyAll(this);
+    };
 
     /**
     Adds a DataService to this MetadataStore. If a DataService with the same serviceName is already
@@ -96,9 +121,7 @@ var MetadataStore = (function () {
             structuralType = structuralType.isComplexType ? new ComplexType(structuralType) : new EntityType(structuralType);
         }
 
-        
         if (!structuralType.isComplexType) {
-
             if (structuralType.keyProperties.length === 0 && !structuralType.isAbstract) {
                 throw new Error("Unable to add " + structuralType.name +
                     " to this MetadataStore.  An EntityType must have at least one property designated as a key property - See the 'DataProperty.isPartOfKey' property.");
@@ -108,10 +131,13 @@ var MetadataStore = (function () {
         structuralType.metadataStore = this;
         // don't register anon types
         if (!structuralType.isAnonymous) {
+            if (this._structuralTypeMap[structuralType.name]) {
+                throw new Error("Type " + structuralType.name + " already exists in this MetadataStore.");
+            }
+
             this._structuralTypeMap[structuralType.name] = structuralType;
             this._shortNameMap[structuralType.shortName] = structuralType.name;
         }
-
         
         structuralType.getProperties().forEach(function (property) {
             structuralType._updateNames(property);
@@ -163,6 +189,7 @@ var MetadataStore = (function () {
     proto.exportMetadata = function () {
         var result = JSON.stringify({
             "metadataVersion": breeze.metadataVersion,
+            "name": this.name,
             "namingConvention": this.namingConvention.name,
             "localQueryComparisonOptions": this.localQueryComparisonOptions.name,
             "dataServices": this.dataServices,
@@ -187,13 +214,13 @@ var MetadataStore = (function () {
     @return {MetadataStore} This MetadataStore.
     @chainable
     **/
-    proto.importMetadata = function (exportedMetadata) {
-
+    proto.importMetadata = function (exportedMetadata, allowMerge) {
+        assertParam(allowMerge, "allowMerge").isOptional().isBoolean().check();
         this._deferredTypes = {};
         var json = (typeof (exportedMetadata) === "string") ? JSON.parse(exportedMetadata) : exportedMetadata;
 
         if (json.schema) {
-            return CsdlMetadataParser.parse(this, json.schema);
+            return CsdlMetadataParser.parse(this, json.schema, json.altMetadata);
         } 
 
         if (json.metadataVersion && json.metadataVersion !== breeze.metadataVersion) {
@@ -225,9 +252,8 @@ var MetadataStore = (function () {
         });
         var structuralTypeMap = this._structuralTypeMap;
         
-        json.structuralTypes.forEach(function (stype) {
-            structuralTypeFromJson(that, stype);
-            
+        json.structuralTypes && json.structuralTypes.forEach(function (stype) {
+            structuralTypeFromJson(that, stype, allowMerge);
         });
         __extend(this._resourceEntityTypeMap, json.resourceEntityTypeMap);
         __extend(this._incompleteTypeMap, json.incompleteTypeMap);
@@ -344,7 +370,7 @@ var MetadataStore = (function () {
         return dataService.adapterInstance.fetchMetadata(this, dataService).then(function (rawMetadata) {
             if (callback) callback(rawMetadata);
             return Q.resolve(rawMetadata);
-        }).fail(function (error) {
+        }, function (error) {
             if (errorCallback) errorCallback(error);
             return Q.reject(error);
         });
@@ -387,21 +413,25 @@ var MetadataStore = (function () {
     @method registerEntityTypeCtor
     @param structuralTypeName {String} The name of the EntityType o0r ComplexType.
     @param aCtor {Function}  The constructor for this EntityType or ComplexType; may be null if all you want to do is set the next parameter. 
-    @param [initializationFn] {Function} A function or the name of a function on the entity that is to be executed immediately after the entity has been created
+    @param [initFn] {Function} A function or the name of a function on the entity that is to be executed immediately after the entity has been created
     and populated with any initial values.
-            
-    initializationFn(entity)
-    @param initializationFn.entity {Entity} The entity being created or materialized.
+        initFn(entity)
+    @param initFn.entity {Entity} The entity being created or materialized.
+    @param [noTrackingFn} {Function} A function that is executed immediately after a noTracking entity has been created and whose return
+    value will be used in place of the noTracking entity. 
+    @param noTrackingFn.entity {Object}
+    @param noTrackingFn.entityType {EntityType} The entityType that the 'entity' parameter would be if we were tracking
     **/
-    proto.registerEntityTypeCtor = function (structuralTypeName, aCtor, initializationFn) {
+    proto.registerEntityTypeCtor = function (structuralTypeName, aCtor, initFn, noTrackingFn) {
         assertParam(structuralTypeName, "structuralTypeName").isString().check();
         assertParam(aCtor, "aCtor").isFunction().isOptional().check();
-        assertParam(initializationFn, "initializationFn").isOptional().isFunction().or().isString().check();
+        assertParam(initFn, "initFn").isOptional().isFunction().or().isString().check();
+        assertParam(noTrackingFn, "noTrackingFn").isOptional().isFunction().check();
         
         var qualifiedTypeName = getQualifiedTypeName(this, structuralTypeName, false);
         var typeName = qualifiedTypeName || structuralTypeName;
             
-        this._ctorRegistry[typeName] = { ctor: aCtor, initFn: initializationFn };
+        this._ctorRegistry[typeName] = { ctor: aCtor, initFn: initFn, noTrackingFn: noTrackingFn };
         if (qualifiedTypeName) {
             var stype = this._structuralTypeMap[qualifiedTypeName];
             stype && stype.getCtor(true); // this will complete the registration if avail now.
@@ -558,16 +588,24 @@ var MetadataStore = (function () {
         return types;
     }
 
-    function structuralTypeFromJson(metadataStore, json) {
+    function structuralTypeFromJson(metadataStore, json, allowMerge) {
         var typeName = qualifyTypeName(json.shortName, json.namespace);
         var stype = metadataStore._getEntityType(typeName, true);
-        if (stype) return stype;
+        if (stype) {
+            if (allowMerge) {
+                return mergeStructuralType(stype, json);
+            } else {
+                // allow it but don't replace anything. 
+                return stype;
+            }
+        }
         var config = {
             shortName: json.shortName,
             namespace: json.namespace,
             isAbstract: json.isAbstract,
             autoGeneratedKeyType: AutoGeneratedKeyType.fromName(json.autoGeneratedKeyType),
-            defaultResourceName: json.defaultResourceName
+            defaultResourceName: json.defaultResourceName,
+            custom: json.custom
         };
 
         stype = json.isComplexType ? new ComplexType(config) : new EntityType(config);
@@ -588,6 +626,34 @@ var MetadataStore = (function () {
 
         // stype may or may not have been added to the metadataStore at this point.
         return stype;
+    }
+
+    function mergeStructuralType(stype, json) {
+        if (json.custom) {
+            stype.custom = json.custom;
+        }
+
+        mergeProps(stype, json.dataProperties);
+        mergeProps(stype, json.navigationProperties);
+        return stype;
+    }
+
+    function mergeProps(stype, jsonProps) {
+        if (!jsonProps) return;
+        jsonProps.forEach(function (jsonProp) {
+            var propName = jsonProp.name;
+            if (!propName) {
+                if (jsonProp.nameOnServer) {
+                    propName = stype.metadataStore.namingConvention.serverPropertyNameToClient(jsonProp.nameOnServer, {});
+                } else {
+                    throw new Error("Unable to complete 'importMetadata' - cannot locate a 'name' or 'nameOnServer' for one of the imported property nodes");
+                }
+            }
+            if (jsonProp.custom) {
+                var prop = stype.getProperty(propName, true);
+                prop.custom = jsonProp.custom;
+            }
+        });
     }
 
     function completeStructuralTypeFromJson(metadataStore, json, stype, baseEntityType) {
@@ -651,7 +717,7 @@ var MetadataStore = (function () {
 
 var CsdlMetadataParser = (function () {
 
-    function parse(metadataStore, schemas) {
+    function parse(metadataStore, schemas, altMetadata) {
 
         metadataStore._entityTypeResourceMap = {};
         __toArray(schemas).forEach(function (schema) {
@@ -692,6 +758,9 @@ var CsdlMetadataParser = (function () {
         var badNavProps = metadataStore.getIncompleteNavigationProperties();
         if (badNavProps.length > 0) {
             throw new Error("Bad nav properties");
+        }
+        if (altMetadata) {
+            metadataStore.importMetadata(altMetadata, true);
         }
         return metadataStore;
     }
@@ -825,15 +894,19 @@ var CsdlMetadataParser = (function () {
         var maxLength = csdlProperty.maxLength;
         maxLength = (maxLength == null || maxLength === "Max") ? null : parseInt(maxLength,10);
         // can't set the name until we go thru namingConventions and these need the dp.
+        
+            
         var dp = new DataProperty({
             nameOnServer: csdlProperty.name,
             dataType: dataType,
             isNullable: isNullable,
             isPartOfKey: isPartOfKey,
             maxLength: maxLength,
+            defaultValue: csdlProperty.defaultValue,
             // fixedLength: fixedLength,
             concurrencyMode: csdlProperty.concurrencyMode
-        });
+        })
+
         if (dataType === DataType.Undefined) {
             dp.rawTypeName = csdlProperty.type;
         }
@@ -1059,8 +1132,14 @@ var EntityType = (function () {
     client side use and will be given an automatically generated name. Normally, however, you will use a configuration object.
     @param config.shortName {String}
     @param [config.namespace=""] {String}
-    @param [config.autogeneratedKeyType] {AutoGeneratedKeyType}
-    @param [config.defaultResourceName] { String}
+    @param [config.baseTypeName] {String}
+    @param [config.isAbstract=false] {Boolean}
+    @param [config.autoGeneratedKeyType] {AutoGeneratedKeyType}
+    @param [config.defaultResourceName] {String}
+    @param [config.dataProperties] {Array of DataProperties}
+    @param [config.navigationProperties] {Array of NavigationProperties}
+    @param [config.serializerFn] A function that is used to mediate the serialization of instances of this type.
+    @param [config.custom] {Object}
     **/
     var ctor = function (config) {
         if (arguments.length > 1) {
@@ -1081,6 +1160,8 @@ var EntityType = (function () {
                 .whereParam("defaultResourceName").isNonEmptyString().isOptional().withDefault(null)
                 .whereParam("dataProperties").isOptional()
                 .whereParam("navigationProperties").isOptional()
+                .whereParam("serializerFn").isOptional().isFunction()
+                .whereParam("custom").isOptional()
                 .applyAll(this);
         }
 
@@ -1103,6 +1184,7 @@ var EntityType = (function () {
         addProperties(this, config.navigationProperties, NavigationProperty);
     };
     var proto = ctor.prototype;
+    var parseRawValue = DataType.parseRawValue;
     proto._$typeName = "EntityType";
 
     /**
@@ -1223,6 +1305,13 @@ var EntityType = (function () {
     **/
 
     /**
+    A free form object that can be used to define any custom metadata for this EntityType. 
+
+    __readOnly__
+    @property custom {Object} 
+    **/
+
+    /**
     General purpose property set method
     @example
         // assume em1 is an EntityManager containing a number of existing entities.
@@ -1235,11 +1324,15 @@ var EntityType = (function () {
     @param config [object]
         @param [config.autogeneratedKeyType] {AutoGeneratedKeyType}
         @param [config.defaultResourceName] {String}
+        @param [config.serializerFn] A function that is used to mediate the serialization of instances of this type.
+        @param [config.custom] {Object}
     **/
     proto.setProperties = function (config) {
         assertConfig(config)
             .whereParam("autoGeneratedKeyType").isEnumOf(AutoGeneratedKeyType).isOptional()
             .whereParam("defaultResourceName").isString().isOptional()
+            .whereParam("serializerFn").isFunction().isOptional()
+            .whereParam("custom").isOptional()
             .applyAll(this);
         if (config.defaultResourceName) {
             this.defaultResourceName = config.defaultResourceName;
@@ -1319,17 +1412,46 @@ var EntityType = (function () {
     @return {Entity} The new entity.
     **/
     proto.createEntity = function (initialValues) {
+        // ignore the _$eref once the entity is attached to an entityManager.
+        if (initialValues  && initialValues._$eref && ! initialValues._$eref.entityAspect.entityManager) return initialValues._$eref;
+
         var instance = this._createInstanceCore();
             
         if (initialValues) {
-            __objectForEach(initialValues, function (key, value) {
-                instance.setProperty(key, value);
+            // only assign an _eref if the object is fully "keyed"
+            if (this.keyProperties.every(function (kp) { return initialValues[kp.name] != null; })) {
+                initialValues._$eref = instance;
+            };
+           
+            this._updateTargetFromRaw(instance, initialValues, getRawValueFromConfig);
+            
+            this.navigationProperties.forEach(function (np) {
+                var relatedEntity;
+                var val = initialValues[np.name];
+                if (val != undefined) {
+                    var navEntityType = np.entityType;
+                    if (np.isScalar) {
+                        relatedEntity = val.entityAspect ? val : navEntityType.createEntity(val);
+                        instance.setProperty(np.name, relatedEntity);
+                    } else {
+                        var relatedEntities = instance.getProperty(np.name);
+                        val.forEach(function (v) {
+                            relatedEntity = v.entityAspect ? v : navEntityType.createEntity(v);
+                            relatedEntities.push(relatedEntity);
+                        });
+                    }
+                }
             });
         }
             
         this._initializeInstance(instance);
         return instance;
     };
+
+    function getRawValueFromConfig(rawEntity, dp) {
+        // 'true' fork can happen if an initializer contains an actaul instance of an already created complex object.
+        return (rawEntity.entityAspect || rawEntity.complexAspect) ? rawEntity.getProperty(dp.name) : rawEntity[dp.name];
+    }
 
     proto._createInstanceCore = function() {
         var aCtor = this.getEntityCtor();
@@ -1342,13 +1464,23 @@ var EntityType = (function () {
         if (this.baseEntityType) {
             this.baseEntityType._initializeInstance(instance);
         }
-        var initFn = this.initializationFn;
+        var initFn = this.initFn;
         if (initFn) {
             if (typeof initFn === "string") {
                 initFn = instance[initFn];
             }
             initFn(instance);
         }
+        this.complexProperties && this.complexProperties.forEach(function (cp) {
+            var ctInstance = instance.getProperty(cp.name);
+            if (Array.isArray(ctInstance)) {
+                ctInstance.forEach(function (ctInst) {
+                    cp.dataType._initializeInstance(ctInst);
+                });
+            } else {
+                cp.dataType._initializeInstance(ctInstance);
+            }
+        });
         // not needed for complexObjects
         if (instance.entityAspect) {
             instance.entityAspect._initialized = true;
@@ -1362,16 +1494,25 @@ var EntityType = (function () {
     **/
     proto.getCtor = proto.getEntityCtor = function (forceRefresh) {
         if (this._ctor && !forceRefresh) return this._ctor;
+        
         var ctorRegistry = this.metadataStore._ctorRegistry;
         var r = ctorRegistry[this.name] || ctorRegistry[this.shortName] || {};
         var aCtor = r.ctor || this._ctor;
+
+        if (aCtor && aCtor.prototype.entityType && aCtor.prototype.entityType.metadataStore !== this.metadataStore) {
+            throw new Error("Cannot register the same constructor for " + this.name + " in different metadata stores.  Please define a separate constructor for each metadata store.");
+        }
+        if (r.ctor && forceRefresh) {
+            this._extra = undefined;
+        }
         
         if (!aCtor) {
             var createCtor = __modelLibraryDef.getDefaultInstance().createCtor;
             aCtor = createCtor ? createCtor(this) : createEmptyCtor();
         }
         
-        this.initializationFn = r.initFn;
+        this.initFn = r.initFn;
+        this.noTrackingFn = r.noTrackingFn;
         
         aCtor.prototype._$typeName = this.name;
         this._setCtor(aCtor);
@@ -1388,13 +1529,10 @@ var EntityType = (function () {
         var proto = aCtor.prototype;
 
         // place for extra breeze related data
-        extra = proto._$extra || {};
-        proto._$extra = extra;
+        this._extra = this._extra || {};
         
-        if (!extra.initialized) {
-            var instance = new aCtor();
-            calcUnmappedProperties(this, instance);
-        } 
+        var instance = new aCtor();
+        calcUnmappedProperties(this, instance);
 
         if (this._$typeName === "EntityType") {
             // insure that all of the properties are on the 'template' instance before watching the class.
@@ -1407,7 +1545,7 @@ var EntityType = (function () {
         proto._$interceptor = interceptor || defaultPropertyInterceptor;
                 
         __modelLibraryDef.getDefaultInstance().initializeEntityPrototype(proto);
-        extra.initialized = true;
+        
         
         this._ctor = aCtor;
     };
@@ -1558,6 +1696,62 @@ var EntityType = (function () {
             }
         }
     };
+       
+    proto.getEntityKeyFromRawEntity = function (rawEntity, rawValueFn) {
+        var keyValues = this.keyProperties.map(function (dp) {
+            var val = rawValueFn(rawEntity, dp);
+            return parseRawValue(val, dp.dataType);
+        });
+        return new EntityKey(this, keyValues);
+    };
+
+    proto._updateTargetFromRaw = function (target, raw, rawValueFn) {
+
+        this.dataProperties.forEach(function (dp) {
+            // recursive call
+            // updateTargetPropertyFromRaw(target, raw, dp, rawValueFn);
+            var rawVal = rawValueFn(raw, dp);
+            if (rawVal === undefined) return;
+            var dataType = dp.dataType; // this will be a complexType when dp is a complexProperty
+            var oldVal;
+            if (dp.isComplexProperty) {
+                if (rawVal === null) return; // rawVal may be null in nosql dbs where it was never defined for the given row.
+                oldVal = target.getProperty(dp.name);
+                if (dp.isScalar) {
+                    dataType._updateTargetFromRaw(oldVal, rawVal, rawValueFn);
+                } else {
+                    // clear the old array and push new complex objects into it.
+                    oldVal.length = 0;
+                    if (Array.isArray(rawVal)) {
+                        rawVal.forEach(function (rawCo) {
+                            var newCo = dataType._createInstanceCore(target, dp);
+                            dataType._updateTargetFromRaw(newCo, rawCo, rawValueFn);
+                            dataType._initializeInstance(newCo);
+                            oldVal.push(newCo);
+                        });
+                    }
+                }
+            } else {
+                var val;
+                if (dp.isScalar) {
+                    val = parseRawValue(rawVal, dataType);
+                    target.setProperty(dp.name, val);
+                } else {
+                    oldVal = target.getProperty(dp.name);
+                    // clear the old array and push new complex objects into it.
+                    oldVal.length = 0;
+                    if (Array.isArray(rawVal)) {
+                        rawVal.forEach(function (rv) {
+                            val = parseRawValue(rv, dataType);
+                            oldVal.push(val);
+                        });
+                    }
+                }
+            }
+        });
+    }
+
+    
 
     /**
     Returns a string representation of this EntityType.
@@ -1578,7 +1772,8 @@ var EntityType = (function () {
             defaultResourceName: null,
             dataProperties: localPropsOnly,
             navigationProperties: localPropsOnly,
-            validators: null
+            validators: null,
+            custom: null
         });
     };
 
@@ -1838,6 +2033,8 @@ var ComplexType = (function () {
     @param config {Object} Configuration settings
     @param config.shortName {String}
     @param [config.namespace=""] {String}
+    @param [config.dataProperties] {Array of DataProperties}
+    @param [config.custom] {Object}
     **/
 
     var ctor = function (config) {
@@ -1850,6 +2047,7 @@ var ComplexType = (function () {
             .whereParam("namespace").isString().isOptional().withDefault("")
             .whereParam("dataProperties").isOptional()
             .whereParam("isComplexType").isOptional().isBoolean()   // needed because this ctor can get called from the addEntityType method which needs the isComplexType prop
+            .whereParam("custom").isOptional().isBoolean()
             .applyAll(this);
 
         this.name = qualifyTypeName(this.shortName, this.namespace);
@@ -1898,7 +2096,7 @@ var ComplexType = (function () {
     The short, unqualified, name for this ComplexType.
 
     __readOnly__
-    +@property shortName {String} 
+    @property shortName {String} 
     **/
 
     /**
@@ -1916,6 +2114,30 @@ var ComplexType = (function () {
     @property validators {Array of Validator} 
     **/
 
+    /**
+    A free form object that can be used to define any custom metadata for this ComplexType. 
+    
+    __readOnly__
+    @property custom {Object} 
+    **/
+
+    /**
+    General purpose property set method
+    @example
+        // assume em1 is an EntityManager
+        var addresstType = em1.metadataStore.getEntityType("Address");
+        addressType.setProperties( {
+            custom: { foo: 7, bar: "test" }
+        });
+    @method setProperties
+    @param config [object]
+    @param [config.custom] {Object}
+    **/
+    proto.setProperties = function (config) {
+        assertConfig(config)
+            .whereParam("custom").isOptional()
+            .applyAll(this);
+    };
 
     /**
     Creates a new non-attached instance of this ComplexType.
@@ -1923,16 +2145,11 @@ var ComplexType = (function () {
     @param initialValues {Object} Configuration object containing initial values for the instance. 
     **/
     // This method is actually the EntityType.createEntity method renamed 
-
-
     proto._createInstanceCore = function (parent, parentProperty ) {
         var aCtor = this.getCtor();
         var instance = new aCtor();
         new ComplexAspect(instance, parent, parentProperty);
-        // TODO: don't think that this is needed anymore - createInstance call will do this 
-        //if (parent) {
-        //    this._initializeInstance(instance);
-        //}
+        // initialization occurs during either attach or in createInstance call. 
         return instance;
     };
         
@@ -1981,17 +2198,23 @@ var ComplexType = (function () {
     @method getCtor
     **/
 
-    proto.addValidator = EntityType.prototype.addValidator;
-    proto.getProperty = EntityType.prototype.getProperty;
-    proto.getPropertyNames = EntityType.prototype.getPropertyNames;
-    proto.createInstance = EntityType.prototype.createEntity;  // name change
-    proto._addDataProperty = EntityType.prototype._addDataProperty;
-    proto._updateNames = EntityType.prototype._updateNames;
-    proto._updateCps = EntityType.prototype._updateCps;
-    proto._initializeInstance = EntityType.prototype._initializeInstance;
+    // copy entityType methods onto complexType
+    proto = __extend(proto, EntityType.prototype, [
+        "addValidator",
+        "getProperty",
+        "getPropertyNames",
+        "_addDataProperty",
+        "_updateNames",
+        "_updateCps",
+        "_initializeInstance",
+        "_updateTargetFromRaw",
+        "_setCtor"
+    ]);
+    
     // note the name change.
+    proto.createInstance = EntityType.prototype.createEntity;  // name change
     proto.getCtor = EntityType.prototype.getEntityCtor;
-    proto._setCtor = EntityType.prototype._setCtor;
+    
         
     proto.toJSON = function () {
         return __toJson(this, {
@@ -1999,7 +2222,8 @@ var ComplexType = (function () {
             namespace: null,
             isComplexType: null,
             dataProperties: null,
-            validators: null
+            validators: null,
+            custom: null
         });
     };
        
@@ -2039,12 +2263,14 @@ var DataProperty = (function () {
     @param [config.dataType=DataType.String] {DataType}
     @param [config.complexTypeName] {String}
     @param [config.isNullable=true] {Boolean}
+    @param [config.isScalar=true] {Boolean}
     @param [config.defaultValue] {Any}
     @param [config.isPartOfKey=false] {Boolean}
     @param [config.isUnmapped=false] {Boolean}
     @param [config.concurrencyMode] {String}
     @param [config.maxLength] {Integer} Only meaningfull for DataType.String
     @param [config.validators] {Array of Validator}
+    @param [config.custom] {Object}
     **/
     var ctor = function(config) {
         assertConfig(config)
@@ -2062,6 +2288,7 @@ var DataProperty = (function () {
             .whereParam("validators").isInstanceOf(Validator).isArray().isOptional().withDefault([])
             .whereParam("enumType").isOptional()
             .whereParam("rawTypeName").isOptional() // occurs with undefined datatypes
+            .whereParam("custom").isOptional()
 
             .applyAll(this);
         var hasName = !!(this.name || this.nameOnServer);
@@ -2108,6 +2335,21 @@ var DataProperty = (function () {
     var proto = ctor.prototype;
     proto._$typeName = "DataProperty";
 
+    ctor.getRawValueFromServer = function (rawEntity, dp) {
+        if (dp.isUnmapped) {
+            return rawEntity[dp.nameOnServer || dp.name];
+        } else {
+            var val = rawEntity[dp.nameOnServer];
+            return val !== undefined ? val : dp.defaultValue;
+        }
+    }
+
+    ctor.getRawValueFromClient = function (rawEntity, dp) {
+        var val = rawEntity[dp.name];
+        return val !== undefined ? val : dp.defaultValue;
+    }
+        
+
     /**
     The name of this property
 
@@ -2148,6 +2390,13 @@ var DataProperty = (function () {
 
     __readOnly__
     @property isNullable {Boolean}
+    **/
+
+    /**
+    Whether this property is scalar (i.e., returns a single value). 
+
+    __readOnly__
+    @property isScalar {Boolean}
     **/
 
     /**
@@ -2206,6 +2455,13 @@ var DataProperty = (function () {
     __readOnly__
     @property relatedNavigationProperty {NavigationProperty}
     **/
+
+    /**
+    A free form object that can be used to define any custom metadata for this DataProperty. 
+    
+    __readOnly__
+    @property custom {Object} 
+    **/
         
     /**
     Is this a DataProperty? - always true here 
@@ -2226,6 +2482,27 @@ var DataProperty = (function () {
     proto.isDataProperty = true;
     proto.isNavigationProperty = false;
 
+    /**
+    General purpose property set method
+    @example
+        // assume em1 is an EntityManager
+        var prop = myEntityType.getProperty("myProperty");
+        prop.setProperties( {
+            custom: { foo: 7, bar: "test" }
+        });
+    @method setProperties
+    @param config [object]
+    @param [config.custom] {Object}
+    **/
+    proto.setProperties = function (config) {
+        assertConfig(config)
+            .whereParam("custom").isOptional()
+            .applyAll(this);
+    };
+
+    
+   
+
     proto.toJSON = function () {
         // do not serialize dataTypes that are complexTypes
         return __toJson(this, {
@@ -2241,7 +2518,8 @@ var DataProperty = (function () {
             validators: null,
             enumType: null,
             rawTypeName: null,
-            isScalar: true
+            isScalar: true,
+            custom: null
         });
     };
 
@@ -2297,7 +2575,7 @@ var NavigationProperty = (function () {
     @param config.entityTypeName {String} The fully qualified name of the type of entity that this property will return.  This type
     need not yet have been created, but it will need to get added to the relevant MetadataStore before this EntityType will be 'complete'.
     The entityType name is constructed as: {shortName} + ":#" + {namespace}
-    @param [config.isScalar] {Boolean}
+    @param [config.isScalar=true] {Boolean}
     @param [config.associationName] {String} A name that will be used to connect the two sides of a navigation. May be omitted for unidirectional navigations.
     @param [config.foreignKeyNames] {Array of String} An array of foreign key names. The array is needed to support the possibility of multipart foreign keys.
     Most of the time this will be a single foreignKeyName in an array.
@@ -2311,13 +2589,14 @@ var NavigationProperty = (function () {
             .whereParam("name").isString().isOptional()
             .whereParam("nameOnServer").isString().isOptional()
             .whereParam("entityTypeName").isString()
-            .whereParam("isScalar").isBoolean()
+            .whereParam("isScalar").isBoolean().isOptional().withDefault(true)
             .whereParam("associationName").isString().isOptional()
             .whereParam("foreignKeyNames").isArray().isString().isOptional().withDefault([])
             .whereParam("foreignKeyNamesOnServer").isArray().isString().isOptional().withDefault([])
             .whereParam("invForeignKeyNames").isArray().isString().isOptional().withDefault([])
             .whereParam("invForeignKeyNamesOnServer").isArray().isString().isOptional().withDefault([])
             .whereParam("validators").isInstanceOf(Validator).isArray().isOptional().withDefault([])
+            .whereParam("custom").isOptional()
             .applyAll(this);
         var hasName = !!(this.name || this.nameOnServer);
                                                               
@@ -2403,6 +2682,13 @@ var NavigationProperty = (function () {
     **/
 
     /**
+    A free form object that can be used to define any custom metadata for this NavigationProperty. 
+    
+    __readOnly__
+    @property custom {Object} 
+    **/
+
+    /**
     Is this a DataProperty? - always false here 
     Allows polymorphic treatment of DataProperties and NavigationProperties.
 
@@ -2421,6 +2707,24 @@ var NavigationProperty = (function () {
     proto.isDataProperty = false;
     proto.isNavigationProperty = true;
 
+    /**
+    General purpose property set method
+    @example
+        // assume myEntityType is an EntityType
+        var prop = myEntityType.getProperty("myProperty");
+        prop.setProperties( {
+            custom: { foo: 7, bar: "test" }
+        });
+    @method setProperties
+    @param config [object]
+    @param [config.custom] {Object}
+    **/
+    proto.setProperties = function (config) {
+        assertConfig(config)
+            .whereParam("custom").isOptional()
+            .applyAll(this);
+    };
+
     proto.toJSON = function () {
         return __toJson(this, {
             name: null,
@@ -2429,7 +2733,8 @@ var NavigationProperty = (function () {
             associationName: null,
             validators: null,
             foreignKeyNames: null,
-            invForeignKeyNames: null
+            invForeignKeyNames: null,
+            custom: null
         });
     };
 

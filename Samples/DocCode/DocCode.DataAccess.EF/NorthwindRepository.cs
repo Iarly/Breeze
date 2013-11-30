@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Data.Entity;
 using System.Linq;
-using Breeze.WebApi;
+
+using Breeze.ContextProvider;
+using Breeze.ContextProvider.EF6;
 using Newtonsoft.Json.Linq;
 using Northwind.Models;
 
@@ -191,6 +193,7 @@ namespace DocCode.DataAccess
             get { return _userSessionId; }
             set {
                 _userSessionId = (value == Guid.Empty) ? _guestUserSessionId : value;
+                _entitySaveGuard.UserSessionId = _userSessionId;
             }
         }
         private Guid _userSessionId = _guestUserSessionId;

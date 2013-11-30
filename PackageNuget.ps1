@@ -38,12 +38,19 @@ function packageNuget($srcDir, $folderName, $versionNum, $isBase) {
   # remove old nupkg files
   gci $destDir *.nupkg -force | foreach ($_) {  remove-item $_.fullname -Force }
  
-  if ($isBase) {
+  if ($isBase -eq 'client') {
     copy-item $srcDir\Breeze.Client\Scripts\breeze*.js $destDir\content\Scripts 
     copy-item $srcDir\Breeze.Client\Scripts\ThirdParty\q.js $destDir\content\Scripts 
     copy-item $srcDir\Breeze.Client\Scripts\ThirdParty\q.min.js $destDir\content\Scripts 
+  } elseif ($isBase -eq 'server') {
     copy-item $srcDir\Breeze.WebApi\Breeze.WebApi.dll $destDir\lib\
-    copy-item $srcDir\ThirdParty\Irony.dll $destDir\lib    
+    copy-item $srcDir\Breeze.WebApi.EF\Breeze.WebApi.EF.dll $destDir\lib\
+    copy-item $srcDir\Breeze.WebApi.NH\Breeze.WebApi.NH.dll $destDir\lib\
+  } elseif ($isBase -eq 'server2') {
+    copy-item $srcDir\Breeze.WebApi2\Breeze.WebApi2.dll $destDir\lib\
+    copy-item $srcDir\Breeze.ContextProvider\Breeze.ContextProvider.dll $destDir\lib\
+    copy-item $srcDir\Breeze.ContextProvider.EF6\Breeze.ContextProvider.EF6.dll $destDir\lib\
+    copy-item $srcDir\Breeze.ContextProvider.NH\Breeze.ContextProvider.NH.dll $destDir\lib\
   }
 
   $input = get-content $nuspecFile  
@@ -67,14 +74,28 @@ function packageNuget($srcDir, $folderName, $versionNum, $isBase) {
 $srcDir = Split-Path -Path $MyInvocation.MyCommand.Definition -Parent
 
 # Check that all files have been updated within the last 5 minutes
-$minutes = 30
-checkIfCurrent $srcDir\Breeze.webApi\Breeze.webApi.dll $minutes
+$minutes = 100
+# checkIfCurrent $srcDir\Breeze.webApi\Breeze.webApi.dll $minutes
 checkIfCurrent $srcDir\Breeze.Client\Scripts\breeze*.js $minutes
 
 $versionNum = getBreezeVersion $srcDir
 
-packageNuget $srcDir 'Breeze.WebApi' $versionNum $true
-packageNuget $srcDir 'Breeze.WebApiSample' $versionNum $false
+packageNuget $srcDir 'Breeze.Client' $versionNum 'client'
+
+# WebApi packages
+packageNuget $srcDir 'Breeze.Server.WebApi.Core' $versionNum 'server'
+packageNuget $srcDir 'Breeze.Server.WebApi.EF' $versionNum 'na'
+packageNuget $srcDir 'Breeze.Server.WebApi.NH' $versionNum 'na'
+packageNuget $srcDir 'Breeze.WebApi.Sample' $versionNum 'na'
+#     composite package 
+packageNuget $srcDir 'Breeze.WebApi' $versionNum 'na'  
+
+# WebApi2 packages
+packageNuget $srcDir 'Breeze.Server.WebApi2' $versionNum 'server2'
+packageNuget $srcDir 'Breeze.Server.ContextProvider' $versionNum 'server2'
+packageNuget $srcDir 'Breeze.Server.ContextProvider.EF6' $versionNum 'server2'
+#     composite package 
+packageNuget $srcDir 'Breeze.WebApi2.EF6' $versionNum 'na'  
 
 Write-Host "Press any key to continue ..."
 cmd /c pause | out-null

@@ -179,7 +179,7 @@
 
         employee.LastName( // 4. adds "too long"; removes "required", 
             "IamTheGreatestAndDontYouForgetIt");
-        assertLastErrMessageIs("'LastName' must be a string with less than");
+        assertLastErrMessageIs("'LastName' must be a string with");
 
         // removes errors one at a time
         // therefore should raise 'hasValidationErrors' 3x
@@ -254,6 +254,37 @@
         errmsgs = getErrorMessages(emp);
         ok(errmsgs.length > 0,
             "Detects errors after force validation: \"{0}\"".format(errmsgs));
+    });
+
+    /*********************************************************
+    * Detaching entity clears validation errors
+    *********************************************************/
+    test("Detaching entity clears validation errors", 3, function () {
+        var em = newEm();  // new empty EntityManager;
+
+        var emp = em.createEntity('Employee');
+
+        emp.EmployeeID(null); // value violates ID required
+
+        var empIdErrors = emp.entityAspect.getValidationErrors('EmployeeID');
+
+        ok(empIdErrors.length > 0,
+            "New, attached entity has deliberately created EmployeeID error: \"{0}\"".format(
+            empIdErrors[0].errorMessage));
+
+        // detach
+        em.detachEntity(emp);
+
+        var errmsgs = getErrorMessages(emp);
+        ok(errmsgs.length === 0,
+            "Employee has no errors after it is detached: \"{0}\"".format(errmsgs));
+
+        // force validation on detached entity
+        emp.entityAspect.validateEntity();
+
+        errmsgs = getErrorMessages(emp);
+        ok(errmsgs.length > 0,
+            "Detached entities has errors after force validation: \"{0}\"".format(errmsgs));
     });
 
     /****** CUSTOM VALIDATORS *******/

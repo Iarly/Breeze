@@ -191,7 +191,28 @@
         .fail(handleFail)
         .fin(start);
     });
+    /*********************************************************
+    * orders shipped to California (via ComplexType).
+    *********************************************************/
+    test("orders shipped to California (via ComplexType)", 2, function () {
 
+        var query = EntityQuery.from("Orders")
+            .where("ShipTo.Region", "==", "CA")
+            .expand("Customer");
+
+        verifyQuery(newEm, query, "orders query", showOrdersShippedToCA);
+
+
+        function showOrdersShippedToCA(data) {
+            if (data.results.length == 0) return;
+            var ords = data.results.map(function (o) {
+                return "({0}) '{1}' is in '{2}'".format(
+                    o.OrderID(), o.Customer().CompanyName(), o.ShipTo().Region());
+            });
+            ok(true, "Got " + ords.join(", "));
+        }
+
+    });
     /*********************************************************
     * customers from nowhere (testing for null)
     *********************************************************/
@@ -444,7 +465,7 @@
         var query = baseQuery.where(pred);
         var em = newEm();
         var nullEntityType = new EntityType(em.metadataStore);
-        ok(true, "OData predicate: " + pred.toOdataFragment(nullEntityType));
+        ok(true, "OData predicate: " + pred.toODataFragment(nullEntityType));
 
         stop();
 
@@ -479,7 +500,7 @@
         var query = baseQuery.where(pred);
         var em = newEm();
         var nullEntityType = new EntityType(em.metadataStore);
-        ok(true, "OData predicate: " + pred.toOdataFragment(nullEntityType));
+        ok(true, "OData predicate: " + pred.toODataFragment(nullEntityType));
 
         stop();
 
@@ -505,7 +526,7 @@
         var query = baseQuery.where(pred);
         var em = newEm();
         var nullEntityType = new EntityType(em.metadataStore);
-        ok(true, "OData predicate: " + pred.toOdataFragment(nullEntityType));
+        ok(true, "OData predicate: " + pred.toODataFragment(nullEntityType));
 
         stop();
 
@@ -525,7 +546,7 @@
         var pred = getOrderedIn1996Predicate();
         var em = newEm();
         var nullEntityType = new EntityType(em.metadataStore);
-        ok(true, "OData predicate: " + pred.toOdataFragment(nullEntityType));
+        ok(true, "OData predicate: " + pred.toODataFragment(nullEntityType));
 
         var query = new EntityQuery("Orders").where(pred);
 
@@ -552,11 +573,11 @@
     module("queryTests (related property conditions)", testFns.getModuleOptions(newEm));
 
     /*********************************************************
-    * Orders of Customers in California
+    * Orders of Customers located in California
     * Customer is the related parent of Order
     * Demonstrates "nested query", filtering on a related entity
     *********************************************************/
-    test("orders of Customers in California", 2, function () {
+    test("orders of Customers located in California", 2, function () {
 
         var query = EntityQuery.from("Orders")
             .where("Customer.Region", "==", "CA")
@@ -575,6 +596,28 @@
         ok(true, "Got " + ords.join(", "));
     }
 
+    /*********************************************************
+    * Orders of Customers whose name starts with 'Alfred'
+    * Customer is the related parent of Order
+    * Demonstrates "nested query", filtering on a related entity
+    *********************************************************/
+    test("orders of Customers whose name starts with 'Alfred'", 2, function () {
+
+        var query = EntityQuery.from("Orders")
+            .where("Customer.CompanyName", "startsWith", "Alfred")
+            .expand("Customer");
+
+        verifyQuery(newEm, query, "orders query", showOrdersToAlfred);
+
+        function showOrdersToAlfred(data) {
+            if (data.results.length == 0) return;
+            var ords = data.results.map(function (o) {
+                return "({0}) to '{1}'".format(
+                    o.OrderID(), o.Customer().CompanyName());
+            });
+            ok(true, "Got " + ords.join(", "));
+        }
+    });
     /*********************************************************
     * Products in a Category whose name begins with 'S'
     * Category is the related parent of Product
@@ -949,7 +992,8 @@
         var query = EntityQuery.from("Orders")
             .where("Freight", FilterQueryOp.GreaterThan, 500)
             .select("Customer.CompanyName")
-            .orderBy("Customer.CompanyName");
+            .orderBy("Customer.CompanyName")
+            .expand("Customer");
 
         verifyQuery(newEm, query,
             "orders w/ big freight costs",

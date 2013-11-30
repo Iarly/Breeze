@@ -7,15 +7,40 @@ app.controller('RouteCtrl', function ($scope, $route) {
 });
 
 
-app.controller('HomeCtrl', [function () {
+app.controller('HomeCtrl', ['$scope', function ($scope) {
+
+    app.dataservice.getSimilarCustomersGET()
+        .then(customersQuerySucceededGET)
+        .fail(queryFailed);
+
+    app.dataservice.getSimilarCustomersPOST()
+        .then(customersQuerySucceededPOST)
+        .fail(queryFailed);
+
+    function customersQuerySucceededGET(data) {
+        $scope.customersGET = data.results;
+        $scope.$apply();
+        app.logger.info("Fetched " + data.results.length + " Customers ");
+    }
+
+    function customersQuerySucceededPOST(data) {
+        $scope.customersPOST = data.results;
+        $scope.$apply();
+        app.logger.info("Fetched " + data.results.length + " Customers ");
+    }
+
+    function queryFailed(error) {
+        app.logger.error(error.message, "Query failed");
+    }
 
 }]);
 
 app.controller('CustomerCtrl', ['$scope', function ($scope) {
 
+    // we should *not* have to use _backingStore, but grid isn't displaying data without it.
     var columnDefs = [{ field: '_backingStore.CompanyName', displayName: 'Company Name', width: '50%' },
-                 { field: '_backingStore.ContactName', displayName: 'Contact Name', width: '30%' },
-                 { field: '_backingStore.Country', displayName: 'Country', width: '20%' }]
+                 { field: 'ContactName', displayName: 'Contact Name', width: '30%' },
+                 { field: 'Country', displayName: 'Country', width: '20%' }]
 
     $scope.customers = $scope.customers || [];
 
@@ -94,7 +119,7 @@ app.controller('CustomerCtrl', ['$scope', function ($scope) {
     }
 
     function queryFailed(error) {
-        logger.error(error.message, "Query failed");
+        app.logger.error(error.message, "Query failed");
     }
 
 }]);
@@ -102,8 +127,8 @@ app.controller('CustomerCtrl', ['$scope', function ($scope) {
 app.controller('OrderCtrl', function ($scope) {
 
     $scope.orders = $scope.orders || [];
-
-    app.dataservice.getOrdersTimes100()
+    
+    app.dataservice.getOrders()
         .then(querySucceeded)
         .fail(queryFailed);
 
