@@ -9,15 +9,15 @@
         define(["breeze"], factory);
     }
 }(function (breeze) {
-    
+
     var core = breeze.core;
- 
+
     var MetadataStore = breeze.MetadataStore;
     var JsonResultsAdapter = breeze.JsonResultsAdapter;
     var DataProperty = breeze.DataProperty;
-    
+
     var OData;
-    
+
     var ctor = function () {
         this.name = "OData";
 
@@ -27,10 +27,10 @@
         OData = core.requireLib("OData", "Needed to support remote OData services");
         OData.jsonHandler.recognizeDates = true;
     };
-    
-    
+
+
     ctor.prototype.executeQuery = function (mappingContext) {
-    
+
         var deferred = Q.defer();
         var url = mappingContext.getUrl();
 
@@ -77,10 +77,10 @@
                 return deferred.resolve({ results: data.results, inlineCount: inlineCount });
             }
             return deferred.reject(createError(response.statusText, mappingContext.url));
-            },
+        },
             function (error) {
-            return deferred.reject(createError(error, mappingContext.url));
-        }, OData.batchHandler);
+                return deferred.reject(createError(error, mappingContext.url));
+            }, OData.batchHandler);
         //OData.read(url,
         //    function (data, response) {
         //        return deferred.resolve({ results: data.results, inlineCount: data.__count });
@@ -91,7 +91,7 @@
         //);
         return deferred.promise;
     };
-    
+
 
     ctor.prototype.fetchMetadata = function (metadataStore, dataService) {
 
@@ -99,7 +99,7 @@
 
         var serviceName = dataService.serviceName;
         var url = dataService.makeUrl('$metadata');
-        
+
         //OData.read({
         //    requestUri: url,
         //    headers: {
@@ -147,7 +147,7 @@
 
         var helper = saveContext.entityManager.helper;
         var url = saveContext.dataService.makeUrl("$batch");
-        
+
         var requestData = createChangeRequests(saveContext, saveBundle);
         var innerEntities = requestData.__innerEntities || [];
         delete requestData.__innerEntities;
@@ -176,9 +176,9 @@
                     if ((!statusCode) || statusCode >= 400) {
                         return deferred.reject(createError(cr, url));
                     }
-                    
+
                     var contentId = cr.headers["Content-ID"];
-                    
+
                     var rawEntity = cr.data;
                     if (rawEntity) {
                         var tempKey = tempKeys[contentId];
@@ -195,7 +195,7 @@
                     } else {
                         var origEntity = contentKeys[contentId];
                         if (origEntity) //
-                        entities.push(origEntity);
+                            entities.push(origEntity);
                     }
                 });
             });
@@ -207,7 +207,7 @@
         return deferred.promise;
 
     };
- 
+
     ctor.prototype.jsonResultsAdapter = new JsonResultsAdapter({
         name: "OData_default",
 
@@ -235,10 +235,10 @@
                 (propertyName === "EntityKey" && node.$type && core.stringStartsWith(node.$type, "System.Data"));
             return result;
         }
-        
+
     });
 
-    function transformValue(prop, val ) {
+    function transformValue(prop, val) {
         if (prop.isUnmapped) return undefined;
         if (prop.dataType === breeze.DataType.DateTimeOffset) {
             // The datajs lib tries to treat client dateTimes that are defined as DateTimeOffset on the server differently
@@ -250,8 +250,24 @@
         return val;
     }
 
+    function _getEntityId(entity) {
+        var prefix = "", sufix = "";
+        if (entity.entityType.keyProperties[0].dataType.name == "Guid") {
+            prefix = "guid'";
+            sufix = "'";
+        }
+        return prefix + entity.entityAspect.getKey().values[0] + sufix;
+    }
+
+    function _getEntityUri(prefix, entity) {
+        var extraMetadata = entity.entityAspect.extraMetadata;
+        return extraMetadata != null ? (extraMetadata.uri || extraMetadata.id)
+            : (location.origin + prefix + entity.entityType.defaultResourceName + "(" + _getEntityId(entity) + ")");
+    }
+
     function createChangeRequests(saveContext, saveBundle) {
         var innerEntities = [];
+        var readedAssociations = [];
         var createdCREntities = [];
         var linksRequest = [];
         var changeRequests = [];
@@ -262,38 +278,18 @@
         var helper = entityManager.helper;
         var id = 0;
         saveBundle.entities.forEach(function (entity) {
-            if (createdCREntities.indexOf(entity) > -1) {
-                innerEntities.push(entity);
-                return;
-            }
             createdCREntities.push(entity);
             var aspect = entity.entityAspect;
             id = id + 1; // we are deliberately skipping id=0 because Content-ID = 0 seems to be ignored.
             var request = { headers: { "Content-ID": id, "DataServiceVersion": "2.0" } };
             contentKeys[id] = entity;
 
-            var getId = function (entity) {
-                var prefix = "", sufix = "";
-                if (entity.entityType.keyProperties[0].dataType.name == "Guid") {
-                    prefix = "guid'";
-                    sufix = "'";
-                }
-                return prefix + entity.entityAspect.getKey().values[0] + sufix;
-            };
-
             if (entity.entityAspect.entityState.isModified()) {
                 aspect.inseredLinks.forEach(function (inseredLink) {
                     if (!inseredLink.entity.entityAspect.entityState.isAdded()
                         && !inseredLink.entity.entityAspect.entityState.isDeleted()) {
                         var linkRequest = { headers: { "Content-ID": id, "DataServiceVersion": "3.0" } };
-                        if (aspect.extraMetadata) {
-                            linkRequest.requestUri = aspect.extraMetadata.uri
-                                + "/$links/" + inseredLink.np.name;
-                        }
-                        else {
-                            linkRequest.requestUri = location.origin + prefix + aspect.entity.entityType.defaultResourceName + "(" + getId(entity) + ")"
-                                + "/$links/" + inseredLink.np.name;
-                        }
+                        linkRequest.requestUri = _getEntityUri(prefix, entity) + "/$links/" + inseredLink.np.name;
                         linkRequest.method = "POST";
 
                         var baseType = inseredLink.entity.entityType;
@@ -302,7 +298,7 @@
 
                         linkRequest.data = {
                             uri: (inseredLink.entity.entityAspect.extraMetadata ? inseredLink.entity.entityAspect.extraMetadata.id : null) ||
-                                prefix + baseType.defaultResourceName + "(" + getId(inseredLink.entity) + ")"
+                                prefix + baseType.defaultResourceName + "(" + _getEntityId(inseredLink.entity) + ")"
                         };
 
                         linksRequest.push(linkRequest);
@@ -315,10 +311,8 @@
                             && !removedLink.entity.entityAspect.entityState.isDeleted()) {
                             var linkRequest = { headers: { "Content-ID": id, "DataServiceVersion": "3.0" } };
                             // DELETE /OData/OData.svc/Categories(1)/$links/Products(10)
-                            linkRequest.requestUri = aspect.extraMetadata.uri
-                                + "/$links/" + removedLink.np.name + "(" + getId(removedLink.entity) + ")";
-                            //linkRequest.requestUri = prefix + entity.entityType.defaultResourceName + "(" + getId(entity) + ")"
-                            //    + "/$links/" + removedLink.np.name + "(" + getId(removedLink.entity) + ")";
+                            linkRequest.requestUri = _getEntityUri(prefix, aspect.entity) +
+                                + "/$links/" + removedLink.np.name + "(" + _getEntityId(removedLink.entity) + ")";
                             linkRequest.method = "DELETE";
                             linksRequest.push(linkRequest);
                         }
@@ -327,7 +321,7 @@
             }
 
             if (aspect.entityState.isAdded()) {
-                var options = { readedAssociations: createdCREntities };
+                var options = { readedAssociations: readedAssociations };
                 insertRequest(request, entity.entityType);
                 request.method = "POST";
                 request.data = helper.unwrapInstance(entity, transformValue, options);
@@ -392,17 +386,17 @@
     }
 
     function updateDeleteMergeRequest(request, aspect, prefix) {
-        var extraMetadata = aspect.extraMetadata;
-        var uri = extraMetadata.uri || extraMetadata.id;
+        var uri = _getEntityUri(prefix, aspect.entity);
         if (core.stringStartsWith(uri, prefix)) {
             uri = uri.substring(prefix.length);
         }
         request.requestUri = uri;
-        if (extraMetadata.etag) {
+        if (aspect.extraMetadata &&
+            aspect.extraMetadata.etag) {
             request.headers["If-Match"] = extraMetadata.etag;
         }
     }
-   
+
     function createError(error, url) {
         // OData errors can have the message buried very deeply - and nonobviously
         // this code is tricky so be careful changing the response.body parsing.

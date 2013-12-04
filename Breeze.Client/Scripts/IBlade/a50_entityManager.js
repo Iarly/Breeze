@@ -2093,7 +2093,12 @@ var EntityManager = (function () {
         var stype = structObj.entityType || structObj.complexType;
         var serializerFn = getSerializerFn(stype);
         var unmapped = {};
+
         readedAssociations = readedAssociations || [];
+        if (readedAssociations.indexOf(structObj) > -1) {
+            options.isIgnored = true;
+            return;
+        }
         readedAssociations.push(structObj);
 
         stype.dataProperties.forEach(function (dp) {
@@ -2125,12 +2130,15 @@ var EntityManager = (function () {
                 return;
             if (dp.isScalar) {
                 var child = structObj.getProperty(dp.name);
-                if (child !== null && readedAssociations.indexOf(child) == -1) {
-                    if (child.entityAspect.entityState.isAdded())
-                        if (!isChildren)
+                if (child !== null) {
+                    if (child.entityAspect.entityState.isAdded()) {
+                        if (readedAssociations.indexOf(child) == -1) {
+                            rawObject[dp.nameOnServer] = unwrapInstance(child, transformFn, { readedAssociations: readedAssociations, isChildren: true, isIgnored: false });
+                        }
+                        else if (!isChildren) {
                             options.isIgnored = true; // returns to ignore insertion of this entity, the insertion will be on association of parent.
-                        else
-                            rawObject[dp.nameOnServer] = null; //unwrapInstance(child, isOData, readedAssociations);
+                        }
+                    }
                     else {
                         rawObject[dp.nameOnServer] = {
                             __deferred: {
@@ -2144,13 +2152,15 @@ var EntityManager = (function () {
                 rawObject[dp.nameOnServer] = [];
 
                 complexObjs.map(function (child) {
-                    if (child !== null && readedAssociations.indexOf(child) == -1) {
+                    if (child !== null) {
                         if (child.entityAspect.entityState.isAdded()) {
-                            var entity = unwrapInstance(child, isOData, { readedAssociations: readedAssociations, isChildren: true, isIgnored: false });
-                            entity.__metadata = {
-                                type: child.entityType.namespace + "." + child.entityType.shortName
-                            };
-                            rawObject[dp.nameOnServer].push(entity);
+                            if (readedAssociations.indexOf(child) == -1) {
+                                var entity = unwrapInstance(child, transformFn, { readedAssociations: readedAssociations, isChildren: true, isIgnored: false });
+                                entity.__metadata = {
+                                    type: child.entityType.namespace + "." + child.entityType.shortName
+                                };
+                                rawObject[dp.nameOnServer].push(entity);
+                            }
                         }
                         else {
                             rawObject[dp.nameOnServer].push({
@@ -2169,11 +2179,7 @@ var EntityManager = (function () {
         if (!__isEmpty(unmapped)) {
             rawObject.__unmapped = unmapped;
         }
-        if (options.isIgnored) {
-            var i = readedAssociations.indexOf(structObj);
-            readedAssociations.splice(i, 1);
-            return null;
-        }
+
         return rawObject;
     }
 

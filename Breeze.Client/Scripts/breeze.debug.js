@@ -13966,7 +13966,12 @@ var EntityManager = (function () {
         var stype = structObj.entityType || structObj.complexType;
         var serializerFn = getSerializerFn(stype);
         var unmapped = {};
+
         readedAssociations = readedAssociations || [];
+        if (readedAssociations.indexOf(structObj) > -1) {
+            options.isIgnored = true;
+            return;
+        }
         readedAssociations.push(structObj);
 
         stype.dataProperties.forEach(function (dp) {
@@ -13998,12 +14003,15 @@ var EntityManager = (function () {
                 return;
             if (dp.isScalar) {
                 var child = structObj.getProperty(dp.name);
-                if (child !== null && readedAssociations.indexOf(child) == -1) {
-                    if (child.entityAspect.entityState.isAdded())
-                        if (!isChildren)
+                if (child !== null) {
+                    if (child.entityAspect.entityState.isAdded()) {
+                        if (readedAssociations.indexOf(child) == -1) {
+                            rawObject[dp.nameOnServer] = unwrapInstance(child, transformFn, { readedAssociations: readedAssociations, isChildren: true, isIgnored: false });
+                        }
+                        else if (!isChildren) {
                             options.isIgnored = true; // returns to ignore insertion of this entity, the insertion will be on association of parent.
-                        else
-                            rawObject[dp.nameOnServer] = null; //unwrapInstance(child, isOData, readedAssociations);
+                        }
+                    }
                     else {
                         rawObject[dp.nameOnServer] = {
                             __deferred: {
@@ -14017,13 +14025,15 @@ var EntityManager = (function () {
                 rawObject[dp.nameOnServer] = [];
 
                 complexObjs.map(function (child) {
-                    if (child !== null && readedAssociations.indexOf(child) == -1) {
+                    if (child !== null) {
                         if (child.entityAspect.entityState.isAdded()) {
-                            var entity = unwrapInstance(child, isOData, { readedAssociations: readedAssociations, isChildren: true, isIgnored: false });
-                            entity.__metadata = {
-                                type: child.entityType.namespace + "." + child.entityType.shortName
-                            };
-                            rawObject[dp.nameOnServer].push(entity);
+                            if (readedAssociations.indexOf(child) == -1) {
+                                var entity = unwrapInstance(child, transformFn, { readedAssociations: readedAssociations, isChildren: true, isIgnored: false });
+                                entity.__metadata = {
+                                    type: child.entityType.namespace + "." + child.entityType.shortName
+                                };
+                                rawObject[dp.nameOnServer].push(entity);
+                            }
                         }
                         else {
                             rawObject[dp.nameOnServer].push({
@@ -14042,11 +14052,7 @@ var EntityManager = (function () {
         if (!__isEmpty(unmapped)) {
             rawObject.__unmapped = unmapped;
         }
-        if (options.isIgnored) {
-            var i = readedAssociations.indexOf(structObj);
-            readedAssociations.splice(i, 1);
-            return null;
-        }
+
         return rawObject;
     }
 
@@ -15143,7 +15149,7 @@ breeze.AbstractDataServiceAdapter = (function () {
         var url = mappingContext.getUrl();
 
         var paramSeparation = '?';
-        if (mappingContext.url.indexOf('?') > -1)
+        if (url.indexOf('?') > -1)
             paramSeparation = '&';
         if (mappingContext.query && mappingContext.query.parameters) {
             var queryOptions = mappingContext.query.parameters;
@@ -15360,6 +15366,7 @@ breeze.AbstractDataServiceAdapter = (function () {
 
     function createChangeRequests(saveContext, saveBundle) {
         var innerEntities = [];
+        var readedAssociations = [];
         var createdCREntities = [];
         var linksRequest = [];
         var changeRequests = [];
@@ -15370,10 +15377,6 @@ breeze.AbstractDataServiceAdapter = (function () {
         var helper = entityManager.helper;
         var id = 0;
         saveBundle.entities.forEach(function (entity) {
-            if (createdCREntities.indexOf(entity) > -1) {
-                innerEntities.push(entity);
-                return;
-            }
             createdCREntities.push(entity);
             var aspect = entity.entityAspect;
             id = id + 1; // we are deliberately skipping id=0 because Content-ID = 0 seems to be ignored.
@@ -15435,7 +15438,7 @@ breeze.AbstractDataServiceAdapter = (function () {
             }
 
             if (aspect.entityState.isAdded()) {
-                var options = { readedAssociations: createdCREntities };
+                var options = { readedAssociations: readedAssociations };
                 insertRequest(request, entity.entityType);
                 request.method = "POST";
                 request.data = helper.unwrapInstance(entity, transformValue, options);
