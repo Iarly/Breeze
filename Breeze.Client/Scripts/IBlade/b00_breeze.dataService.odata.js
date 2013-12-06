@@ -311,7 +311,7 @@
                             && !removedLink.entity.entityAspect.entityState.isDeleted()) {
                             var linkRequest = { headers: { "Content-ID": id, "DataServiceVersion": "3.0" } };
                             // DELETE /OData/OData.svc/Categories(1)/$links/Products(10)
-                            linkRequest.requestUri = _getEntityUri(prefix, aspect.entity) +
+                            linkRequest.requestUri = _getEntityUri(prefix, aspect.entity)
                                 + "/$links/" + removedLink.np.name + "(" + _getEntityId(removedLink.entity) + ")";
                             linkRequest.method = "DELETE";
                             linksRequest.push(linkRequest);
