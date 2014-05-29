@@ -9,31 +9,32 @@
         define(["breeze"], factory);
     }
 }(function (breeze) {
-
+    
     var core = breeze.core;
-
+ 
     var MetadataStore = breeze.MetadataStore;
     var JsonResultsAdapter = breeze.JsonResultsAdapter;
     var DataProperty = breeze.DataProperty;
-
+    
     var OData;
-
+    
     var ctor = function () {
         this.name = "OData";
-
     };
 
-    ctor.prototype.initialize = function () {
+    var fn = ctor.prototype; // minifies better (as seen in jQuery)
+
+    fn.initialize = function () {
         OData = core.requireLib("OData", "Needed to support remote OData services");
         OData.jsonHandler.recognizeDates = true;
     };
-
-
-    ctor.prototype.executeQuery = function (mappingContext) {
-
+    
+    
+    fn.executeQuery = function (mappingContext) {
+    
         var deferred = Q.defer();
         var url = mappingContext.getUrl();
-
+        
         var paramSeparation = '?';
         if (url.indexOf('?') > -1)
             paramSeparation = '&';
@@ -77,7 +78,7 @@
                 return deferred.resolve({ results: data.results, inlineCount: inlineCount });
             }
             return deferred.reject(createError(response.statusText, mappingContext.url));
-        },
+            },
             function (error) {
                 return deferred.reject(createError(error, mappingContext.url));
             }, OData.batchHandler);
@@ -91,15 +92,15 @@
         //);
         return deferred.promise;
     };
+    
 
-
-    ctor.prototype.fetchMetadata = function (metadataStore, dataService) {
+    fn.fetchMetadata = function (metadataStore, dataService) {
 
         var deferred = Q.defer();
 
         var serviceName = dataService.serviceName;
         var url = dataService.makeUrl('$metadata');
-
+        
         //OData.read({
         //    requestUri: url,
         //    headers: {
@@ -141,7 +142,9 @@
 
     };
 
-    ctor.prototype.saveChanges = function (saveContext, saveBundle) {
+    fn.getRoutePrefix = function(dataService){ return ''; /* see webApiODataCtor */}
+
+    fn.saveChanges = function (saveContext, saveBundle) {
 
         var deferred = Q.defer();
 
@@ -157,6 +160,8 @@
             return deferred.promise;
         }
 
+        var routePrefix = this.getRoutePrefix(saveContext.dataService);
+        var requestData = createChangeRequests(saveContext, saveBundle, routePrefix);
         var tempKeys = saveContext.tempKeys;
         var contentKeys = saveContext.contentKeys;
         var that = this;
@@ -176,9 +181,9 @@
                     if ((!statusCode) || statusCode >= 400) {
                         return deferred.reject(createError(cr, url));
                     }
-
+                    
                     var contentId = cr.headers["Content-ID"];
-
+                    
                     var rawEntity = cr.data;
                     if (rawEntity) {
                         var tempKey = tempKeys[contentId];
@@ -195,7 +200,7 @@
                     } else {
                         var origEntity = contentKeys[contentId];
                         if (origEntity) //
-                            entities.push(origEntity);
+                        entities.push(origEntity);
                     }
                 });
             });
@@ -207,8 +212,8 @@
         return deferred.promise;
 
     };
-
-    ctor.prototype.jsonResultsAdapter = new JsonResultsAdapter({
+ 
+    fn.jsonResultsAdapter = new JsonResultsAdapter({
         name: "OData_default",
 
         visitNode: function (node, mappingContext, nodeContext) {
@@ -235,7 +240,7 @@
                 (propertyName === "EntityKey" && node.$type && core.stringStartsWith(node.$type, "System.Data"));
             return result;
         }
-
+        
     });
 
     function transformValue(prop, val) {
@@ -265,7 +270,7 @@
             : (location.origin + prefix + entity.entityType.defaultResourceName + "(" + _getEntityId(entity) + ")");
     }
 
-    function createChangeRequests(saveContext, saveBundle) {
+    function createChangeRequests(saveContext, saveBundle, routePrefix) {
         var innerEntities = [];
         var readedAssociations = [];
         var createdCREntities = [];
@@ -273,7 +278,7 @@
         var changeRequests = [];
         var tempKeys = [];
         var contentKeys = [];
-        var prefix = saveContext.dataService.serviceName;
+        var baseUri = saveContext.dataService.serviceName;
         var entityManager = saveContext.entityManager;
         var helper = entityManager.helper;
         var id = 0;
@@ -323,6 +328,7 @@
             if (aspect.entityState.isAdded()) {
                 var options = { readedAssociations: readedAssociations };
                 insertRequest(request, entity.entityType);
+                request.requestUri = routePrefix + entity.entityType.defaultResourceName;
                 request.method = "POST";
                 request.data = helper.unwrapInstance(entity, transformValue, options);
                 tempKeys[id] = aspect.getKey();
@@ -333,7 +339,7 @@
                     return;
                 }
             } else if (aspect.entityState.isModified()) {
-                updateDeleteMergeRequest(request, aspect, prefix);
+                updateDeleteMergeRequest(request, aspect, baseUri, routePrefix);
                 request.method = "MERGE";
                 request.data = helper.unwrapChangedValues(entity, entityManager.metadataStore, transformValue);
                 // should be a PATCH/MERGE
@@ -343,7 +349,7 @@
                     return;
                 }
             } else if (aspect.entityState.isDeleted()) {
-                updateDeleteMergeRequest(request, aspect, prefix);
+                updateDeleteMergeRequest(request, aspect, baseUri, routePrefix);
                 request.method = "DELETE";
             } else {
                 return;
@@ -385,10 +391,11 @@
         request.requestUri = defaultResourceName;
     }
 
-    function updateDeleteMergeRequest(request, aspect, prefix) {
-        var uri = _getEntityUri(prefix, aspect.entity);
-        if (core.stringStartsWith(uri, prefix)) {
-            uri = uri.substring(prefix.length);
+    function updateDeleteMergeRequest(request, aspect, baseUri, routePrefix) {
+        var extraMetadata = aspect.extraMetadata;
+        var uri = extraMetadata.uri || extraMetadata.id;
+        if (core.stringStartsWith(uri, baseUri)) {
+            uri = routePrefix + uri.substring(baseUri.length);
         }
         request.requestUri = uri;
         if (aspect.extraMetadata &&
@@ -396,7 +403,7 @@
             request.headers["If-Match"] = extraMetadata.etag;
         }
     }
-
+   
     function createError(error, url) {
         // OData errors can have the message buried very deeply - and nonobviously
         // this code is tricky so be careful changing the response.body parsing.
@@ -441,5 +448,25 @@
 
     breeze.config.registerAdapter("dataService", ctor);
 
-}));
 
+    var webApiODataCtor = function () {
+        this.name = "webApiOData";
+    }
+
+    breeze.core.extend(webApiODataCtor.prototype, fn);
+
+    webApiODataCtor.prototype.getRoutePrefix = function(dataService){
+        // Get the routePrefix from a Web API OData service name.
+        // Web API OData requires inclusion of the routePrefix in the Uri of a batch subrequest
+        // By convention, Breeze developers add the Web API OData routePrefix to the end of the serviceName
+        // e.g. the routePrefix in 'http://localhost:55802/odata/' is 'odata/'
+        var segments = dataService.serviceName.split('/');
+        var last = segments.length-1 ;
+        var routePrefix = segments[last] || segments[last-1];
+        routePrefix = routePrefix ? routePrefix += '/' : '';
+        return routePrefix;
+    };
+
+    breeze.config.registerAdapter("dataService", webApiODataCtor);
+
+}));

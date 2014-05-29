@@ -220,7 +220,7 @@ var MappingContext = (function () {
                     em.entityChanged.publish({ entityAction: action, entity: targetEntity });
                     // this is needed to handle an overwrite of a modified entity with an unchanged entity 
                     // which might in turn cause _hasChanges to change.
-                    if (!targetEntityState.isUnchanged) {
+                    if (!targetEntityState.isUnchanged()) {
                         em._notifyStateChange(targetEntity, false);
                     }
                 } else {
@@ -368,7 +368,7 @@ var MappingContext = (function () {
             relatedEntities.push(relatedEntity);
             // Verify if inverse property is scalar...
             if (inverseProperty.isScalar)
-                relatedEntity.setProperty(inverseProperty.name, targetEntity);
+            relatedEntity.setProperty(inverseProperty.name, targetEntity);
                 // if is a collection is a many-to-many, push target entity...
             else {
                 var nonScalarProperty = relatedEntity.getProperty(inverseProperty.name);

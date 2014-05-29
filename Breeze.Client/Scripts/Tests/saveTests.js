@@ -32,6 +32,254 @@
         teardown: function () { }
     });
 
+
+    test("insert multipart entity", function () {
+        var em = newEm();
+        var product = createProduct(em);
+        stop();
+        var order, orderDetail, productID, odOrderID, odProductID;
+        em.saveChanges().then(function (sr0) {
+            ok(sr0.entities.length == 1, "should have saved 1 entity");
+            order = createOrder(em);
+            orderDetail = createOrderDetail(em, order, product);
+
+            orderID = order.getProperty("orderID");
+            productID = product.getProperty("productID");
+            ok(orderID != 0, "orderID should not be 0");
+            ok(productID != 0, "productID should not be 0");
+            var odOrderID = orderDetail.getProperty("orderID");
+            var odProductID = orderDetail.getProperty("productID");
+            ok(orderID == odOrderID, "orderID's should be the same");
+            ok(productID == odProductID, "productID's should be the same");
+            return em.saveChanges().fail(function (e) {
+                var x = e;
+            });
+        }).then(function (sr) {
+            ok(sr.entities.length == 2, "should have saved 3 entities");
+            var orderIDx = order.getProperty("orderID");
+            var productIDx = product.getProperty("productID");
+            ok(orderID != orderIDx, "orderID should have changed");
+            // ok(productID != productIDx, "productID should have changed");
+            var odOrderIDx = orderDetail.getProperty("orderID");
+            var odProductIDx = orderDetail.getProperty("productID");
+            ok(orderIDx == odOrderIDx, "new orderID's should be the same");
+            ok(productIDx == odProductIDx, "new productID's should be the same");
+            // hack should not be necessary.
+            // orderDetail.setProperty("productID", productIDx);
+            orderDetail.setProperty("unitPrice", 10);
+            return em.saveChanges();
+        }).then(function (sr2) {
+            ok(sr2.entities.length == 1, "should have saved 1 entity");
+        }).fail(testFns.handleFail).fin(start);
+
+    });
+
+    // bug is with fixup of the 2nd part of the pk
+    test("insert multipart entity 2", function() {
+        var em = newEm();
+        var order = createOrder(em);
+        var product = createProduct(em);
+        var orderDetail = createOrderDetail(em, order, product);
+        
+        var orderID = order.getProperty("orderID");
+        var productID = product.getProperty("productID");
+        ok(orderID != 0, "orderID should not be 0");
+        ok(productID != 0, "productID should not be 0");
+        var odOrderID = orderDetail.getProperty("orderID");
+        var odProductID = orderDetail.getProperty("productID");
+        ok(orderID == odOrderID, "orderID's should be the same");
+        ok(productID == odProductID, "productID's should be the same");
+        stop();
+        em.saveChanges().then(function(sr) {
+            ok(sr.entities.length == 3, "should have saved 3 entities");
+            var orderIDx = order.getProperty("orderID");
+            var productIDx = product.getProperty("productID");
+            ok(orderID != orderIDx, "orderID should have changed");
+            ok(productID != productIDx, "productID should have changed");
+            var odOrderIDx = orderDetail.getProperty("orderID");
+            var odProductIDx = orderDetail.getProperty("productID");
+            ok(orderIDx == odOrderIDx, "new orderID's should be the same");
+            ok(productIDx == odProductIDx, "new productID's should be the same");
+            // hack should not be necessary.
+            // orderDetail.setProperty("productID", productIDx);
+            orderDetail.setProperty("unitPrice", 10);
+            return em.saveChanges();
+        }).then(function(sr2) {
+            ok(sr2.entities.length == 1, "should have saved 1 entity");
+        }).fail(testFns.handleFail).fin(start);
+
+    });
+
+    test("hasChangesChanged event raised after saveChanges", 4, function () {
+        var em = newEm();
+        
+        var hasChangesChangedRaised = [];
+        em.hasChangesChanged.subscribe(
+            function (eventArgs) {
+                hasChangesChangedRaised.push(eventArgs.hasChanges);
+            }
+        );
+
+        var emp = em.createEntity("Employee");
+        emp.setProperty("firstName", "Test fn");
+        emp.setProperty("lastName", "Test ln");
+        emp.setProperty("fullName", "foo");
+
+        stop();
+        em.saveChanges()
+           .then(function () {
+               equal(hasChangesChangedRaised.length, 2,
+                "hasChangesChanged should have been raised twice");
+               ok(hasChangesChangedRaised[0] === true,
+                "first hasChangesChanged is true after create");
+               ok(hasChangesChangedRaised[1] === false,
+                "second hasChangesChanged is false after save");
+               ok(!em.hasChanges(),
+                "manager should not have pending changes after save");
+           }).fail(testFns.handleFail).fin(start);
+    });
+
+    test("delete without query", function () {
+        var em = newEm();
+        var em2 = newEm();
+        var similarEmp;
+        var similarAspect;
+        var emp = em.createEntity("Employee");
+        emp.setProperty("firstName", "Test fn");
+        emp.setProperty("lastName", "Test ln");
+        emp.setProperty("fullName", "foo");
+        em.addEntity(emp);
+        stop();
+        em.saveChanges().then(function (sr) {
+            var savedEnts = sr.entities;
+            ok(savedEnts.length === 1, "should have saved 1 entity");
+            ok(emp === savedEnts[0], "should be same emp");
+            var empKeyValue = emp.getProperty(testFns.employeeKeyName);
+            var empKey = emp.entityAspect.getKey();
+            similarEmp = em2.createEntity("Employee");
+            similarEmp.setProperty(testFns.employeeKeyName, empKeyValue);
+            similarAspect = similarEmp.entityAspect;
+            similarAspect.setUnchanged();
+            similarAspect.setDeleted();
+            ok(similarAspect.entityState.isDeleted(), "should be deleted");
+            return em2.saveChanges();
+        }).then(function (sr) {
+            var savedEnts = sr.entities;
+            ok(savedEnts.length === 1, "should have saved 1 entity");
+            ok(savedEnts[0] === similarEmp, "should be the same similarEmp");
+            ok(similarAspect.entityState.isDetached(), "should be detached");
+        }).fail(testFns.handleFail).fin(start);
+
+
+    });
+
+    test("pk update", function () {
+
+        if (testFns.DEBUG_MONGO) {
+            ok(true, "TODO for Mongo - needs to be written specifically for Mongo - should succeed in Mongo");
+            return;
+        }
+
+        var em = newEm();
+
+        var q = new EntityQuery("Territories").orderBy("territoryID desc").take(1);
+        stop();
+        var order;
+        var freight;
+        q.using(em).execute().then(function (data) {
+            ok(data.results.length === 1, "should be one result");
+            var terr = data.results[0];
+            var id = terr.getProperty("territoryID");
+            terr.setProperty("territoryID", id + 1);
+
+            return em.saveChanges();
+        }).then(function (sr) {
+            ok(false, "should not get here");
+            
+
+        }).fail(function (e) {
+            var isOk = e.message.indexOf("part of the entity's key") > 0;
+            ok(isOk, "error message should mention the entity key");
+        }).fail(testFns.handleFail).fin(start);
+    });
+
+    test("product update active", function () { 
+        updateProduct(4);
+    });
+    test("product update discontinued", function () {
+        updateProduct(5);
+    });
+
+    function updateProduct(productId) {
+
+        if (testFns.DEBUG_MONGO) {
+            ok(true, "TODO for Mongo - needs to be written specifically for Mongo - should succeed in Mongo");
+            return;
+        }
+
+        var em = newEm();
+
+        var q = new EntityQuery("Products").where("productID", "eq", productId);
+        stop();
+        var order;
+        var freight;
+        q.using(em).execute().then(function (data) {
+            ok(data.results.length === 1, "should be one result");
+            var product = data.results[0];
+            var unitsInStock = product.getProperty("unitsInStock");
+            product.setProperty("unitsInStock", unitsInStock + 10);
+            return em.saveChanges();
+        }).then(function (sr) {
+            ok(true, "save succeeded");
+        }).fail(function (e) {
+            ok(false, "error on save: " + e.message);
+        }).fail(testFns.handleFail).fin(start);
+    }
+
+    test("add UserRole", function () {
+        if (testFns.DEBUG_MONGO) {
+            ok(true, "TODO for Mongo - needs to be written specifically for Mongo - should succeed in Mongo");
+            return;
+        }
+
+        var em = newEm();
+        var roleId;
+        var userId = 6;
+        var p2 = breeze.Predicate.create("userId", "ne", userId);
+        var p1 = breeze.Predicate.create("userRoles", "all", p2);
+
+        var q = new EntityQuery("Roles").where(p1).take(1);
+        stop();
+        q.using(em).execute().then(function (data) {
+            ok(data.results.length === 1, "should be one result");
+            var role = data.results[0];
+            roleId = role.getProperty("id");
+
+            var newUserRole = em.createEntity('UserRole', {
+                userId: userId,
+                roleId: roleId
+            });
+
+            return em.saveChanges();
+        }).then(function (sr) {
+            ok(true, "save succeeded");
+            var resultRole = sr.entities[0];
+            var roleId2 = resultRole.getProperty("roleId");
+            ok(roleId2 === roleId, "roleIds match");
+            var userId2 = resultRole.getProperty("userId");
+            ok(userId2 === userId, "userIds match");
+            
+            // delete entity
+            resultRole.entityAspect.setDeleted();
+            return em.saveChanges();
+        }).then(function (sr) {
+            ok(true, "delete succeeded");
+        }).fail(function (e) {
+            ok(false, "error on save: " + e.message);
+        }).fail(testFns.handleFail).fin(start);
+
+    });
+
     test("exceptions thrown on server", function () {
         if (testFns.DEBUG_ODATA) {
             ok(true, "Skipped test - OData does not support server interception or alt resources");
@@ -106,6 +354,11 @@
     //});
 
     test("check unmapped property on server", function () {
+
+        if (testFns.DEBUG_MONGO) {
+            ok(true, "N/A for Mongo - Have not yet added SaveCheck code for Mongo");
+            return;
+        }
         
         var em = newEm(MetadataStore.importMetadata(testFns.metadataStore.exportMetadata()));
         var customerType = em.metadataStore.getEntityType("Customer");
@@ -130,6 +383,11 @@
     });
 
     test("test unmapped property serialization on server", function () {
+
+        if (testFns.DEBUG_MONGO) {
+            ok(true, "N/A for Mongo - Have not yet added SaveCheck code for Mongo");
+            return;
+        }
 
         var em = newEm(MetadataStore.importMetadata(testFns.metadataStore.exportMetadata()));
         var customerType = em.metadataStore.getEntityType("Customer");
@@ -173,6 +431,11 @@
 
     test("test unmapped property suppression", function () {
 
+        if (testFns.DEBUG_MONGO) {
+            ok(true, "N/A for Mongo - Have not yet added SaveCheck code for Mongo");
+            return;
+        }
+
         var em = newEm(MetadataStore.importMetadata(testFns.metadataStore.exportMetadata()));
         var customerType = em.metadataStore.getEntityType("Customer");
         customerType.setProperties({
@@ -215,7 +478,7 @@
         };
 
         if (testFns.DEBUG_MONGO) {
-            ok(true, "NA for Mongo - server side 'test' logic not yet implemented");
+            ok(true, "N/A for Mongo - Have not yet added SaveCheck code for Mongo");
             return;
         }
 
@@ -317,6 +580,40 @@
             equal(internationalOrderID, orderId,
                 "the new internationalOrder should have the same OrderID as its new parent Order, " + orderId);
             ok(orderId > 0, "the OrderID is positive, indicating it is a permanent order");
+
+        }).fail(testFns.handleFail).fin(start);
+
+    });
+
+    test("can save a Northwind Order & OrderDetail", function () {
+        if (testFns.DEBUG_MONGO) {
+            ok(true, "N/A for Mongo - primary keys cannot be shared between collections");
+            return;
+        }
+        // Create and initialize entity to save
+        var em = newEm();
+
+        var order = em.createEntity('Order', {
+            customerID: wellKnownData.alfredsID,
+            employeeID: wellKnownData.nancyID,
+            shipName: "Test " + new Date().toISOString()
+        });
+
+        var orderDetail1 = em.createEntity('OrderDetail', {
+            order: order, // sets OrderID and pulls it into the order's manager
+            productID: wellKnownData.chaiProductID, // wellKnownData.alfredsOrderDetailKey.ProductID
+            quantity: 5
+        });
+        var orderDetail2 = em.createEntity('OrderDetail', {
+            order: order, // sets OrderID and pulls it into the order's manager
+            productID: wellKnownData.alfredsOrderDetailKey.ProductID,
+            quantity: 6
+        });
+        stop();
+        em.saveChanges().then(function (data) {
+
+            var orderId = order.getProperty("orderID");
+            ok(orderId > 0, "orderID is positive");
 
         }).fail(testFns.handleFail).fin(start);
 
@@ -585,14 +882,14 @@
 
         var em = newEm();
 
-        var q = new EntityQuery("Orders").where("shipCity", "ne", null).take(1);
+        var q = new EntityQuery("Orders").where("shipCountry", "ne", null).take(1);
         stop();
-        var order, freight, shipCity;
+        var order, freight, shipCountry;
         q.using(em).execute().then(function (data) {
             order = data.results[0];
             freight = order.getProperty("freight");
-            shipCity = testFns.morphString(order.getProperty("shipCity"));
-            order.setProperty("shipCity", shipCity);
+            shipCountry = testFns.morphString(order.getProperty("shipCountry"));
+            order.setProperty("shipCountry", shipCountry);
             var so = new SaveOptions({ resourceName: "SaveWithFreight", tag: "freight update-force" });
             return em.saveChanges(null, so);
         }).then(function (sr) {
@@ -614,14 +911,14 @@
 
         var em = newEm();
 
-        var q = new EntityQuery("Orders").where("shipCity", "ne", null).take(1);
+        var q = new EntityQuery("Orders").where("shipCountry", "ne", null).take(1);
         stop();
         var order, freight, shipCity;
         q.using(em).execute().then(function (data) {
             order = data.results[0];
             freight = order.getProperty("freight");
-            shipCity = testFns.morphString(order.getProperty("shipCity"));
-            order.setProperty("shipCity", shipCity);
+            shipCity = testFns.morphString(order.getProperty("shipCountry"));
+            order.setProperty("shipCountry", shipCity);
             var so = new SaveOptions({ resourceName: "SaveWithFreight", tag: "freight update-ov" });
             return em.saveChanges(null, so);
         }).then(function (sr) {
@@ -1263,7 +1560,7 @@
             ok(saveResult.keyMappings.length === 0, "no key mappings should be returned");
 
             entities.forEach(function(e) {
-                ok(e.entityAspect.entityState.isUnchanged, "entity is not in unchanged state");
+                ok(e.entityAspect.entityState.isUnchanged(), "entity is not in unchanged state");
                 if (e.entityType === cust.entityType) {
                     ok(e === cust, "cust does not match");
                 } else {
@@ -1479,7 +1776,8 @@
             ok((exceptionType.indexOf("concurrency") >= 0 || exceptionType.indexOf("staleobjectstate") >= 0), "wrong error message: " + error.detail.ExceptionType);
         }).fin(start);
     });
-    
+
+   
     //test("concurrency violation on delete", function () {
     //    ok(false, "not yet implemented");
     //});
@@ -1515,6 +1813,11 @@
             ok(true, "Skipped tests - not applicable to OData");
             return;
         };
+
+        if (testFns.DEBUG_MONGO) {
+            ok(true, "TODO for Mongo - need to create this test");
+            return;
+        }
 
         var em = newEm();
         var q = new EntityQuery()
@@ -1880,6 +2183,36 @@
             order1.setProperty("shipRegion", "foo-region");
             orders.push(order1);
         }
+    }
+
+    function createOrder(em) {
+        var orderType = em.metadataStore.getEntityType("Order");
+        var order = orderType.createEntity();
+        em.addEntity(order);
+        order.setProperty("shipName", "Test_" + new Date().toDateString());
+        return order;
+    }
+
+    function createProduct(em) {
+        var productType = em.metadataStore.getEntityType("Product");
+        var product = productType.createEntity();
+        em.addEntity(product);
+        product.setProperty("productName", "Test_" + new Date().toDateString());
+        return product;
+    }
+
+    function createOrderDetail(em, order, product) {
+        var odType = em.metadataStore.getEntityType("OrderDetail");
+        var od = odType.createEntity();
+        var orderID = order.getProperty("orderID");
+        var productID = product.getProperty("productID");
+
+        od.setProperty("orderID", orderID);
+        od.setProperty("productID", productID);
+        od.setProperty("quantity", 1);
+        od.setProperty("unitPrice", 3.14);
+        em.addEntity(od);
+        return od;
     }
 
     function createRegion(em, descr) {

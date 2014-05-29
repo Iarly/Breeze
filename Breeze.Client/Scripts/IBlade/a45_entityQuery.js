@@ -34,6 +34,7 @@ var EntityQuery = (function () {
         this.expandClause = null;
         this.parameters = {};
         this.inlineCountEnabled = false;
+        this.noTrackingEnabled = false;
         // default is to get queryOptions and dataService from the entityManager.
         // this.queryOptions = new QueryOptions();
         // this.dataService = new DataService();
@@ -479,7 +480,7 @@ var EntityQuery = (function () {
             .noTracking(true);
    
 
-    @method inlineCount
+    @method noTracking
     @param enabled {Boolean=true} Whether or not the noTracking capability should be enabled. If this parameter is omitted, true is assumed. 
     @return {EntityQuery}
     @chainable
@@ -698,7 +699,7 @@ var EntityQuery = (function () {
         assertParam(entityKey, "entityKey").isInstanceOf(EntityKey).check();
         var q = new EntityQuery(entityKey.entityType.defaultResourceName);
         var pred = buildKeyPredicate(entityKey);
-        q = q.where(pred);
+        q = q.where(pred).toType(entityKey.entityType);
         return q;
     };
 
@@ -807,6 +808,7 @@ var EntityQuery = (function () {
             "takeCount",
             "expandClause",
             "inlineCountEnabled",
+            "noTrackingEnabled",
             "queryOptions", 
             "entityManager",
             "dataService",
@@ -835,7 +837,6 @@ var EntityQuery = (function () {
         queryOptions["$expand"] = toExpandString();
         queryOptions["$select"] = toSelectString();
         queryOptions["$inlinecount"] = toInlineCountString();
-        //queryOptions = __extend(queryOptions, this.parameters);
             
         var qoText = toQueryOptionsString(queryOptions);
         return this.resourceName + qoText;
@@ -934,7 +935,6 @@ var EntityQuery = (function () {
 
     // private functions
         
-        
     function normalizePropertyPaths(propertyPaths) {
         assertParam(propertyPaths, "propertyPaths").isOptional().isString().or().isArray().isString().check();
         if (typeof propertyPaths === 'string') {
@@ -1013,7 +1013,7 @@ var QueryFuncs = (function() {
         tolower:     { fn: function (source) { return source.toLowerCase(); }, dataType: DataType.String },
         substring:   { fn: function (source, pos, length) { return source.substring(pos, length); }, dataType: DataType.String },
         substringof: { fn: function (find, source) { return source.indexOf(find) >= 0;}, dataType: DataType.Boolean },
-        length:      { fn: function(source) { return source.length; }, dataType: DataType.Int32 },
+        length:      { fn: function (source) { return source.length; }, dataType: DataType.Int32 },
         trim:        { fn: function (source) { return source.trim(); }, dataType: DataType.String },
         concat:      { fn: function (s1, s2) { return s1.concat(s2); }, dataType: DataType.String },
         replace:     { fn: function (source, find, replace) { return source.replace(find, replace); }, dataType: DataType.String },
@@ -1023,11 +1023,11 @@ var QueryFuncs = (function() {
         round:       { fn: function (source) { return Math.round(source); }, dataType: DataType.Int32 },
         ceiling:     { fn: function (source) { return Math.ceil(source); }, dataType: DataType.Int32 },
         floor:       { fn: function (source) { return Math.floor(source); }, dataType: DataType.Int32 },
-        second:      { fn: function (source) { return source.second; }, dataType: DataType.Int32 },
-        minute:      { fn: function (source) { return source.minute; }, dataType: DataType.Int32 },
-        day:         { fn: function (source) { return source.day; }, dataType: DataType.Int32 },
-        month:       { fn: function (source) { return source.month; }, dataType: DataType.Int32 },
-        year:        { fn: function (source) { return source.year; }, dataType: DataType.Int32 }
+        second:      { fn: function (source) { return source.getSeconds(); }, dataType: DataType.Int32 },
+        minute:      { fn: function (source) { return source.getMinutes(); }, dataType: DataType.Int32 },
+        day:         { fn: function (source) { return source.getDate(); }, dataType: DataType.Int32 },
+        month:       { fn: function (source) { return source.getMonth() + 1; }, dataType: DataType.Int32 },
+        year:        { fn: function (source) { return source.getFullYear(); }, dataType: DataType.Int32 }
     };
         
     return obj;
@@ -1050,7 +1050,7 @@ var FnNode = (function() {
             // value is either a string, a quoted string, a number, a bool value, or a date
             // if a string ( not a quoted string) then this represents a property name.
             var firstChar = value.substr(0,1);
-            var quoted = firstChar === "'" || firstChar === '"';
+            var quoted = (firstChar === "'" || firstChar === '"') && value.length > 1 && value.substr(value.length - 1) === firstChar;
             if (quoted) {
                 var unquoted = value.substr(1, value.length - 2);
                 this.fn = function (entity) { return unquoted; };
@@ -1190,8 +1190,6 @@ var FnNode = (function() {
             });
         }
     };
-
-
         
     function createPropFunction(propertyPath) {
         var properties = propertyPath.split('.');
@@ -1267,7 +1265,7 @@ var FilterQueryOp = (function () {
     @final
     @static
     **/
-    aEnum.Contains = aEnum.addSymbol({ operator: "substringof", isFunction: true, isStringFn: true });
+    aEnum.Contains = aEnum.addSymbol({ operator: "substringof", aliases: ["contains"], isFunction: true, isStringFn: true });
     /**
     @property StartsWith {FilterQueryOp}
     @final
@@ -1710,8 +1708,6 @@ var SimplePredicate = (function () {
             }
         }
     };
-
-   
 
     proto.toFunction = function (entityType) {
         if (this._odataExpr) {

@@ -132,6 +132,24 @@
             }
         }
     }
+    asyncTest("can query for suppliers which holds a complex type", 2, function () {
+        var em = newEm();
+
+        EntityQuery.from('Suppliers').top(1)
+            .using(em).execute()
+            .then(success).fail(handleFail).fin(start);
+
+        function success(data) {
+            var address=null, hasAddress = false;
+            var supplier = data.results[0];
+            ok(supplier != null, "should have a supplier");
+            try {
+                address = supplier && supplier.Location().Address();
+                hasAddress = address && address.length;
+            } catch (e) { /*will catch error in failed test*/ }
+            ok(hasAddress, "should have supplier.location.address which is " + address);
+        }
+    });
     /*** Single condition filtering ***/
 
     /*********************************************************
@@ -618,6 +636,38 @@
             ok(true, "Got " + ords.join(", "));
         }
     });
+
+    /*********************************************************
+    * EntityManager.getEntities is not polymorphic
+    * Alfreds orders include regular and 'InternationalOrders'
+    * Have to look for both types in cache to get them all
+    *********************************************************/
+    asyncTest("EntityManager.getEntities is not polymorphic", 3, function () {
+
+        var em = newEm();
+        var query = EntityQuery.from("Orders")
+            // known to have a mix of Order types
+            .where('Customer.CompanyName', 'eq', 'Around the Horn')
+            .expand("Customer");
+
+        em.executeQuery(query)
+            .then(getOrdersFromCache).catch(handleFail).fin(start);
+
+        function getOrdersFromCache(data) {
+            var cust = em.getEntities('Customer')[0];
+            var custOrders = cust.getProperty('Orders');
+            var custOrderCount = custOrders.length;
+            var qOrders = em.getEntities('Order');
+            var qOrderCount = qOrders.length;
+            var qInternationalOrders = em.getEntities('InternationalOrder');
+            var qInternationalOrderCount = qInternationalOrders.length;
+
+            ok(qOrderCount, "should have some Orders; count = " + qOrderCount);
+            ok(qInternationalOrderCount, "should have some InternationalOrders; count = " + qInternationalOrderCount);
+            equal(qOrderCount + qInternationalOrderCount, custOrderCount,
+                "sum of regular & international orders should = total cust orders, " + custOrderCount);
+        }
+    });
     /*********************************************************
     * Products in a Category whose name begins with 'S'
     * Category is the related parent of Product
@@ -771,6 +821,22 @@
         ok(firstProduct !== null, "can navigate to first order's first detail's product");
     }
     
+
+    asyncTest("can query for products and get related Supplier entity with complex type", 2, function () {
+        var em = newEm();
+
+        EntityQuery.from('Products').top(1)
+            .expand('Supplier')
+            .using(em).execute()
+            .then(success).fail(handleFail).fin(start);
+
+        function success(data) {
+            var product = data.results[0];
+            ok(product != null, "should have a product");
+            ok(product && product.Supplier() !== null, "product should have a supplier");
+        }
+    });
+    
     /*********************************************************
     * When API method returns an HttpResponseMessage (HRM)
     * can filter, select, and expand 
@@ -902,7 +968,7 @@
     function showProductResults(data) {
         var limit = 15;
         var count = data.results.length;
-        var results = (limit) ? data.results.slice(0, limit) : data.results;
+        var results = limit < count ? data.results.slice(0, limit) : data.results;
         var out = results.map(function (p) {
             return "({0}) '{1}' at ${2} in '{3}'".format(
                 p.ProductID(), p.ProductName(), p.UnitPrice(),
@@ -1402,7 +1468,7 @@
         var em = newEm();
         
         // create an 'Alice' employee
-        var alice = em.createEntity('Employee', { FirstName: 'Alice' });
+        em.createEntity('Employee', { FirstName: 'Alice' });
 
         // query for Employees with names that begin with 'A'
         var query = EntityQuery.from('Employees')
@@ -1591,18 +1657,57 @@
             em.fetchEntityByKey("Customer", id,
                // Look in cache first; it will be there this time
                /* checkLocalCacheFirst */ true)
-              .then(fetchSucceeded)
+              .then(fetchUnchangedCustomerByKeySucceeded)
+              .fail(handleFail)
+              .fin(start);
+        });
+    /*********************************************************
+    * Fetch unchanged Customer by key found in cache using EntityType instead of type name
+    *********************************************************/
+    test("fetchEntityByKey of unchanged Customer found in cache using EntityType", 2,
+        function () {
+
+            var em = newEm(); // empty manager
+            var id = '11111111-2222-3333-4444-555555555555';
+            // fake it in cache so we can find it
+            var cust = attachCustomer(em, id);
+
+            stop(); // actually won't go async
+            var customerType = cust.entityType;
+            em.fetchEntityByKey(customerType, id, true)
+              .then(fetchUnchangedCustomerByKeySucceeded)
               .fail(handleFail)
               .fin(start);
 
-            function fetchSucceeded(data) {
-                var customer = data.entity;
-                var name = customer && customer.CompanyName();
-                var entityState = customer && customer.entityAspect.entityState;
-                ok(entityState.isUnchanged, "should have found unchanged customer, " + name);
-                ok(data.fromCache, "should have found customer in cache");
-            }
+
         });
+    /*********************************************************
+    * Fetch unchanged Customer by key found in cache using EntityKey
+    *********************************************************/
+    test("fetchEntityByKey of unchanged Customer found in cache using EntityKey", 2,
+        function () {
+
+            var em = newEm(); // empty manager
+            var id = '11111111-2222-3333-4444-555555555555';
+            // fake it in cache so we can find it
+            var cust = attachCustomer(em, id);
+
+            stop(); // actually won't go async
+            var key = cust.entityAspect.getKey();
+            em.fetchEntityByKey(key, true)
+              .then(fetchUnchangedCustomerByKeySucceeded)
+              .fail(handleFail)
+              .fin(start);
+
+
+        });
+    function fetchUnchangedCustomerByKeySucceeded(data) {
+        var customer = data.entity;
+        var name = customer && customer.CompanyName();
+        var entityState = customer && customer.entityAspect.entityState;
+        ok(entityState.isUnchanged, "should have found unchanged customer, " + name);
+        ok(data.fromCache, "should have found customer in cache");
+    }
     /*********************************************************
      * Fetch OrderDetail by its 2-part key from cache from server
      *********************************************************/

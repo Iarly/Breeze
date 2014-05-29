@@ -2,7 +2,33 @@
 @module breeze
 **/
 
-var Q = __requireLib("Q", "See https://github.com/kriskowal/q ");
+// Get the promises library called Q
+// define a quick failing version if not found.
+var Q = __requireLibCore("Q");
+
+if (!Q) {
+    // No Q.js! Substitute a placeholder Q which always fails 
+    // Should be replaced by the app via breeze.config.setQ
+    // For example, see Breeze Labs "breeze.use$q"
+    Q = function() {
+        var eMsg = 'Q is undefined. Are you missing Q.js? See https://github.com/kriskowal/q';
+        throw new Error(eMsg);
+    }
+    
+    // all Q methods called by Breeze should fail
+    Q.defer = Q.resolve = Q.reject = Q;
+}
+    
+
+/**
+(Re)set Q with a promises implementation suitable for Breeze internal use  
+@method setQ
+@param q {Object} - a  "thenable" promises implementation like Q.js with the API that Breeze requires internally.
+@param [q.defer] {Function} A function returning a deferred.
+@param [q.resolve] {Function} A function returning a resolved promise.
+@param [q.reject] {Function} A function returning a rejected promise.
+**/
+breeze.config.setQ = function (q) { Q = q; }
 
 // TODO: still need to handle inheritence here.
              
@@ -87,6 +113,7 @@ var MetadataStore = (function () {
     in the MetadataStore an exception will be thrown. 
     @method addDataService
     @param dataService {DataService} The DataService to add
+    @param [shouldOverwrite=false] {Boolean} Permit overwrite of existing DataService rather than throw exception
     **/
         
     proto.addDataService = function(dataService, shouldOverwrite) {
@@ -211,6 +238,7 @@ var MetadataStore = (function () {
         newMetadataStore.importMetadata(metadataFromStorage);
     @method importMetadata
     @param exportedMetadata {String|JSON Object} A previously exported MetadataStore.
+    @param [allowMerge] {Boolean} Allows custom metadata to be merged into existing metadata types.
     @return {MetadataStore} This MetadataStore.
     @chainable
     **/
@@ -950,14 +978,14 @@ var CsdlMetadataParser = (function () {
         if (constraint) {
             var principal = constraint.principal;
             var dependent = constraint.dependent;
-            var propRefs;
+        
+            var propRefs = __toArray(dependent.propertyRef);
+            var fkNames = propRefs.map(__pluck("name"));
             if (csdlProperty.fromRole === principal.role) {
-                propRefs = __toArray(principal.propertyRef);
-                cfg.invForeignKeyNamesOnServer = propRefs.map(__pluck("name"));
+                cfg.invForeignKeyNamesOnServer = fkNames;
             } else {
-                propRefs = __toArray(dependent.propertyRef);
                 // will be used later by np._update
-                cfg.foreignKeyNamesOnServer = propRefs.map(__pluck("name"));
+                cfg.foreignKeyNamesOnServer = fkNames;
             }
         }
 
@@ -1069,8 +1097,8 @@ var CsdlMetadataParser = (function () {
             //if (schema) {
             //    ns = getNamespaceFor(shortName, schema);
             //} else {
-            var namespaceParts = nameParts.slice(0, nameParts.length - 1);
-            ns = namespaceParts.join(".");
+                var namespaceParts = nameParts.slice(0, nameParts.length - 1);
+                ns = namespaceParts.join(".");
             //}
             return {
                 shortTypeName: shortName,
@@ -1173,6 +1201,7 @@ var EntityType = (function () {
         this.complexProperties = [];
         this.keyProperties = [];
         this.foreignKeyProperties = [];
+        this.inverseForeignKeyProperties = [];
         this.concurrencyProperties = [];
         this.unmappedProperties = []; // will be updated later.
         this.validators = [];
@@ -1706,10 +1735,9 @@ var EntityType = (function () {
     };
 
     proto._updateTargetFromRaw = function (target, raw, rawValueFn) {
-
+        // called recursively for complex properties
         this.dataProperties.forEach(function (dp) {
-            // recursive call
-            // updateTargetPropertyFromRaw(target, raw, dp, rawValueFn);
+
             var rawVal = rawValueFn(raw, dp);
             if (rawVal === undefined) return;
             var dataType = dp.dataType; // this will be a complexType when dp is a complexProperty
@@ -1749,6 +1777,14 @@ var EntityType = (function () {
                 }
             }
         });
+
+        // if merging from an import then raw will have an entityAspect or a complexAspect
+        var rawAspect = raw.entityAspect || raw.complexAspect;
+        if (rawAspect && rawAspect.originalValuesMap) {
+            targetAspect = target.entityAspect || target.complexAspect;
+            targetAspect.originalValues = rawAspect.originalValuesMap;
+        }
+
     }
 
     
@@ -1950,8 +1986,8 @@ var EntityType = (function () {
             np.invForeignKeyNames.forEach(function (invFkName) {
                 var fkProp = entityType.getDataProperty(invFkName);
                 var invEntityType = np.parentType;
-                fkProp.inverseNavigationProperty = __arrayFirst(invEntityType.navigationProperties, function (np) {
-                    return np.invForeignKeyNames && np.invForeignKeyNames.indexOf(fkProp.name) >= 0;
+                fkProp.inverseNavigationProperty = __arrayFirst(invEntityType.navigationProperties, function (np2) {
+                    return np2.invForeignKeyNames && np2.invForeignKeyNames.indexOf(fkProp.name) >= 0 && np2.entityType === fkProp.parentType;
                 });
                 // entityType.foreignKeyProperties.push(fkProp);
                 addUniqueItem(entityType.foreignKeyProperties, fkProp);
@@ -1983,6 +2019,8 @@ var EntityType = (function () {
         fkProps.forEach(function (dp) {
             addUniqueItem(fkPropCollection, dp);
             dp.relatedNavigationProperty = np;
+            // now update the inverse
+            np.entityType.inverseForeignKeyProperties.push(dp);
             if (np.relatedDataProperties) {
                 np.relatedDataProperties.push(dp);
             } else {
@@ -2208,6 +2246,7 @@ var ComplexType = (function () {
         "_updateCps",
         "_initializeInstance",
         "_updateTargetFromRaw",
+        "_clientPropertyPathToServer",
         "_setCtor"
     ]);
     
@@ -2322,7 +2361,7 @@ var DataProperty = (function () {
                 } else {
                     this.defaultValue = this.dataType.defaultValue;
                     if (this.defaultValue == null) {
-                        throw new Error("A nonnullable DataProperty cannot have a null defaultValue. Name: " + this.name);
+                        throw new Error("A nonnullable DataProperty cannot have a null defaultValue. Name: " + (this.name || this.nameOnServer));
                     }
                 }
             }
