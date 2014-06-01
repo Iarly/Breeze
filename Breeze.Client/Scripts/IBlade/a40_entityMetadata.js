@@ -864,6 +864,29 @@ var CsdlMetadataParser = (function () {
             delete deferredTypes[entityType.name];
         }
 
+        if (entityType && (Ext && Ext.define)) {
+            Ext.define(entityType.namespace + '.' + entityType.shortName, {
+                extend: 'Ext.data.Model',
+                fields: entityType.dataProperties ? entityType.dataProperties.map(function (property) {
+                    return {
+                        name: property.name,
+                        type: property.dataType
+                    };
+                }) : null,
+                associations: entityType.navigationProperties ? entityType.navigationProperties.map(function (nav) {
+                    var entityTypeNames = nav.entityTypeName.split(':#');
+                    var entityTypeName = entityTypeNames[1] + '.' + entityTypeNames[0];
+                    return {
+                        type: nav.isScalar ? 'hasOne' : 'hasMany',
+                        model: entityTypeName,
+                        associatedName: nav.name,
+                        name: nav.name
+                    };
+                }) : null,
+                idProperty: 'Id'
+            });
+        }
+
     }
 
     function parseCsdlComplexType(csdlComplexType, schema, metadataStore) {
@@ -1093,13 +1116,12 @@ var CsdlMetadataParser = (function () {
             var shortName = nameParts[nameParts.length - 1];
 
             var ns;
-            // TODO: Error when working with WCF DataService
-            //if (schema) {
-            //    ns = getNamespaceFor(shortName, schema);
-            //} else {
+            if (schema) {
+                ns = getNamespaceFor(shortName, schema);
+            } else {
                 var namespaceParts = nameParts.slice(0, nameParts.length - 1);
                 ns = namespaceParts.join(".");
-            //}
+            }
             return {
                 shortTypeName: shortName,
                 namespace: ns,

@@ -26,7 +26,8 @@
     };
 
 
-    ;/**
+    
+/**
  @module core
  **/
 
@@ -605,7 +606,7 @@ core.parent = breeze;
 breeze.core = core;
 
 
-;/**
+/**
  @module core
  **/
 
@@ -967,7 +968,7 @@ core.assertConfig = assertConfig;
 
 
 
-;/**
+/**
  @module core
  **/
 
@@ -1241,7 +1242,7 @@ var Enum = (function() {
 core.Enum = Enum;
 
 
-;/**
+/**
 @module core
 **/
 
@@ -1526,7 +1527,8 @@ var Event = (function() {
 
 })();
 
-core.Event = Event;;/**
+core.Event = Event;
+/**
 @module breeze   
 **/
 
@@ -1805,7 +1807,8 @@ var __modelLibraryDef = __config.interfaceRegistry.modelLibrary;
 // legacy
 core.config = __config;
 
-breeze.config = __config;;
+breeze.config = __config;
+
 var observableArray = (function() {
 
     var mixin = {};
@@ -1963,7 +1966,8 @@ var observableArray = (function() {
 
 
 
-})();;/**
+})();
+/**
 @module breeze
 **/
 
@@ -2669,7 +2673,7 @@ var Validator = (function () {
     **/
     ctor.emailAddress = function (context) {
         // See https://github.com/srkirkland/DataAnnotationsExtensions/blob/master/DataAnnotationsExtensions/EmailAttribute.cs
-        var reEmailAddress = /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?$/;
+        var reEmailAddress = /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?$/i;
         return makeRegExpValidator('emailAddress', reEmailAddress, null, context);
     };
 
@@ -2934,13 +2938,8 @@ var ValidationError = (function () {
 
 breeze.Validator = Validator;
 breeze.ValidationError = ValidationError;
-<<<<<<< HEAD
 
 /**
-=======
- 
-;/**
->>>>>>> 9fe7264a8ea74100b2ba57719bc9e8f615dc7393
 @module breeze
 **/
    
@@ -3067,7 +3066,7 @@ breeze.ValidationOptions = ValidationOptions;
 
 
 
-;
+
 breeze.makeComplexArray = (function() {
     var complexArrayMixin = {};
 
@@ -3195,7 +3194,8 @@ breeze.makeComplexArray = (function() {
     }
 
     return makeComplexArray;
-})();;/**
+})();
+/**
 @module breeze   
 **/
 
@@ -3331,7 +3331,7 @@ var EntityAction = (function () {
 
 breeze.EntityAction= EntityAction;
 
-;/**
+/**
 @module breeze   
 **/
 
@@ -4281,15 +4281,9 @@ var ComplexAspect = (function () {
 })();
 
 
-<<<<<<< HEAD
 breeze.EntityAspect = EntityAspect;
 breeze.ComplexAspect = ComplexAspect;
 /**
-=======
-breeze.EntityAspect= EntityAspect;
-breeze.ComplexAspect= ComplexAspect;
-;/**
->>>>>>> 9fe7264a8ea74100b2ba57719bc9e8f615dc7393
 @module breeze   
 **/
     
@@ -4442,7 +4436,7 @@ var EntityKey = (function () {
 })();
 
 breeze.EntityKey = EntityKey;
-;/**
+/**
 @module breeze   
 **/
 
@@ -4585,7 +4579,7 @@ var EntityState = (function () {
 })();
    
 breeze.EntityState= EntityState;
-;
+
 breeze.makePrimitiveArray = (function() {
     var primitiveArrayMixin = {};
 
@@ -4669,14 +4663,9 @@ breeze.makePrimitiveArray = (function() {
     }
 
     return makePrimitiveArray;
-<<<<<<< HEAD
 })();
 
 breeze.makeRelationArray = (function () {
-=======
-})();;
-breeze.makeRelationArray = (function() {
->>>>>>> 9fe7264a8ea74100b2ba57719bc9e8f615dc7393
 
     var relationArrayMixin = {};
 
@@ -4897,7 +4886,8 @@ breeze.makeRelationArray = (function() {
     }
 
     return makeRelationArray;
-})();;
+})();
+
 function defaultPropertyInterceptor(property, newValue, rawAccessorFn) {
     // 'this' is the entity itself in this context.
 
@@ -5307,7 +5297,8 @@ function defaultPropertyInterceptor(property, newValue, rawAccessorFn) {
         inProcess.pop();
     }
 }
-    ;/**
+    
+/**
   @module breeze
   **/
 
@@ -5782,7 +5773,7 @@ var DataType = (function () {
 
 breeze.DataType = DataType;
 
-;/**
+/**
 @module breeze
 **/
 
@@ -6043,7 +6034,7 @@ breeze.DataService= DataService;
 breeze.JsonResultsAdapter = JsonResultsAdapter;
 
 
-;/**
+/**
 @module breeze
 **/
 
@@ -6848,7 +6839,7 @@ var CsdlMetadataParser = (function () {
         });
         if (csdlEntityType.baseType) {
             var baseTypeName = parseTypeName(csdlEntityType.baseType, schema).typeName;
-            entityType.baseTypeName = baseTypeName;
+            entityType.baseTypeName = baseTypeName;7
             var baseEntityType = metadataStore._getEntityType(baseTypeName, true);
             if (baseEntityType) {
                 completeParseCsdlEntityType(entityType, csdlEntityType, schema, metadataStore, baseEntityType);
@@ -6863,6 +6854,27 @@ var CsdlMetadataParser = (function () {
         } else {
             completeParseCsdlEntityType(entityType, csdlEntityType, schema, metadataStore, null);
         }
+
+        if (entityType) {
+            Ext.define(entityType.namespace + '.' + entityType.shortName, {
+                extend: 'Ext.data.Model',
+                fields: entityType.dataProperties && entityType.dataProperties.map(function (property) {
+                    return {
+                        name: property.name,
+                        type: property.dataType
+                    };
+                }),
+                associations: entityType.navigationProperties && entityType.navigationProperties.map(function (nav) {
+                    return {
+                        type: nav.isScalar ? 'hasOne' : 'hasMany',
+                        model: nav.entityType.namespace + '.' + nav.entityType.shortName,
+                        name: nav.associationName
+                    };
+                }),
+                idProperty: 'Id'
+            });
+        }
+
         // entityType may or may not have been added to the metadataStore at this point.
         return entityType;
 
@@ -7020,31 +7032,18 @@ var CsdlMetadataParser = (function () {
             associationName: association.name
         };
 
-<<<<<<< HEAD
         if (constraint) {
             var principal = constraint.principal;
             var dependent = constraint.dependent;
-            var propRefs;
-            if (csdlProperty.fromRole === principal.role) {
-                propRefs = __toArray(principal.propertyRef);
-                cfg.invForeignKeyNamesOnServer = propRefs.map(__pluck("name"));
-            } else {
-                propRefs = __toArray(dependent.propertyRef);
-                // will be used later by np._update
-                cfg.foreignKeyNamesOnServer = propRefs.map(__pluck("name"));
-            }
-=======
-        var principal = constraint.principal;
-        var dependent = constraint.dependent;
         
-        var propRefs = __toArray(dependent.propertyRef);
-        var fkNames = propRefs.map(__pluck("name"));
-        if (csdlProperty.fromRole === principal.role) {
-            cfg.invForeignKeyNamesOnServer = fkNames;
-        } else {
-            // will be used later by np._update
-            cfg.foreignKeyNamesOnServer = fkNames;
->>>>>>> 9fe7264a8ea74100b2ba57719bc9e8f615dc7393
+            var propRefs = __toArray(dependent.propertyRef);
+            var fkNames = propRefs.map(__pluck("name"));
+            if (csdlProperty.fromRole === principal.role) {
+                cfg.invForeignKeyNamesOnServer = fkNames;
+            } else {
+                // will be used later by np._update
+                cfg.foreignKeyNamesOnServer = fkNames;
+            }
         }
 
         var np = new NavigationProperty(cfg);
@@ -7155,8 +7154,8 @@ var CsdlMetadataParser = (function () {
             //if (schema) {
             //    ns = getNamespaceFor(shortName, schema);
             //} else {
-            var namespaceParts = nameParts.slice(0, nameParts.length - 1);
-            ns = namespaceParts.join(".");
+                var namespaceParts = nameParts.slice(0, nameParts.length - 1);
+                ns = namespaceParts.join(".");
             //}
             return {
                 shortTypeName: shortName,
@@ -7795,7 +7794,7 @@ var EntityType = (function () {
     proto._updateTargetFromRaw = function (target, raw, rawValueFn) {
         // called recursively for complex properties
         this.dataProperties.forEach(function (dp) {
-            
+
             var rawVal = rawValueFn(raw, dp);
             if (rawVal === undefined) return;
             var dataType = dp.dataType; // this will be a complexType when dp is a complexProperty
@@ -7845,7 +7844,7 @@ var EntityType = (function () {
 
     }
 
-  
+    
 
     /**
     Returns a string representation of this EntityType.
@@ -8955,7 +8954,7 @@ breeze.AutoGeneratedKeyType = AutoGeneratedKeyType;
 MetadataStore.normalizeTypeName = CsdlMetadataParser.normalizeTypeName;
 
 
-;/**
+/**
  @module breeze
  **/
 
@@ -9075,7 +9074,8 @@ var KeyGenerator = (function () {
     return ctor;
 })();
 
-breeze.KeyGenerator = KeyGenerator;;/**
+breeze.KeyGenerator = KeyGenerator;
+/**
 @module breeze
 **/
 
@@ -9172,7 +9172,7 @@ var LocalQueryComparisonOptions = (function () {
 breeze.LocalQueryComparisonOptions = LocalQueryComparisonOptions;
 
 
-;/**
+/**
 @module breeze
 **/
     
@@ -9303,7 +9303,7 @@ var NamingConvention = (function () {
 breeze.NamingConvention = NamingConvention;
 
 
-;    
+    
 var EntityQuery = (function () {
     /**
     An EntityQuery instance is used to query entities either from a remote datasource or from a local {{#crossLink "EntityManager"}}{{/crossLink}}. 
@@ -11595,7 +11595,7 @@ breeze.FnNode = FnNode;
 // Not documented - only exposed for testing purposes
 breeze.OrderByClause = OrderByClause;
 
-;/**
+/**
 @module breeze
 **/
    
@@ -11810,7 +11810,7 @@ breeze.FetchStrategy= FetchStrategy;
 breeze.MergeStrategy = MergeStrategy;
 
 
-;/**
+/**
 @module breeze
 **/
 
@@ -11979,7 +11979,7 @@ var EntityGroup = (function () {
 // do not expose EntityGroup - internal only
 
 
-;/**
+/**
 @module breeze
 **/
 
@@ -11988,7 +11988,7 @@ var EntityManager = (function () {
     Instances of the EntityManager contain and manage collections of entities, either retrieved from a backend datastore or created on the client. 
     @class EntityManager
     **/
-
+        
     /** 
     @example                    
     At its most basic an EntityManager can be constructed with just a service name
@@ -12050,15 +12050,15 @@ var EntityManager = (function () {
         this.entityChanged = new Event("entityChanged", this);
         this.validationErrorsChanged = new Event("validationErrorsChanged", this);
         this.hasChangesChanged = new Event("hasChangesChanged", this);
-
+            
         this.clear();
-
+            
     };
 
     var proto = ctor.prototype;
     proto._$typeName = "EntityManager";
     Event.bubbleEvent(proto, null);
-
+    
     /**
     General purpose property set method.  Any of the properties documented below 
     may be set.
@@ -12080,12 +12080,12 @@ var EntityManager = (function () {
     proto.setProperties = function (config) {
         updateWithConfig(this, config, false);
     };
-
+    
     function updateWithConfig(em, config, isCtor) {
         var defaultQueryOptions = isCtor ? QueryOptions.defaultInstance : em.queryOptions;
         var defaultSaveOptions = isCtor ? SaveOptions.defaultInstance : em.saveOptions;
         var defaultValidationOptions = isCtor ? ValidationOptions.defaultInstance : em.validationOptions;
-
+        
 
         var configParam = assertConfig(config)
             .whereParam("serviceName").isOptional().isString()
@@ -12097,10 +12097,10 @@ var EntityManager = (function () {
         if (isCtor) {
             configParam = configParam
                 .whereParam("metadataStore").isInstanceOf(MetadataStore).isOptional().withDefault(new MetadataStore());
-        }
+        } 
         configParam.applyAll(em);
-
-
+        
+        
         // insure that entityManager's options versions are completely populated
         __updateWithDefaults(em.queryOptions, defaultQueryOptions);
         __updateWithDefaults(em.saveOptions, defaultSaveOptions);
@@ -12116,16 +12116,16 @@ var EntityManager = (function () {
         em.keyGeneratorCtor = em.keyGeneratorCtor || KeyGenerator;
         if (isCtor || config.keyGeneratorCtor) {
             em.keyGenerator = new em.keyGeneratorCtor();
-        }
+        } 
     }
-
+        
     /**
     The service name associated with this EntityManager.
 
     __readOnly__
     @property serviceName {String}
     **/
-
+        
     /**
     The DataService name associated with this EntityManager.
 
@@ -12168,8 +12168,8 @@ var EntityManager = (function () {
     @property keyGeneratorCtor {KeyGenerator constructor}
     **/
 
-
-
+       
+       
     // events
     /**
     An {{#crossLink "Event"}}{{/crossLink}} that fires whenever a change to any entity in this EntityManager occurs.
@@ -12213,7 +12213,7 @@ var EntityManager = (function () {
     **/
 
     // class methods 
-
+          
     /**
     Creates a new entity of a specified type and optionally initializes it. By default the new entity is created with an EntityState of Added
     but you can also optionally specify an EntityState.  An EntityState of 'Detached' will insure that the entity is created but not yet added 
@@ -12254,7 +12254,7 @@ var EntityManager = (function () {
         return entity;
     };
 
-
+   
 
     /**
     Creates a new EntityManager and imports a previously exported result into it.
@@ -12331,13 +12331,8 @@ var EntityManager = (function () {
         includeMetadata = (includeMetadata == null) ? true : includeMetadata;
         
         var exportBundle = exportEntityGroups(this, entities);
-<<<<<<< HEAD
-        json = __extend({}, this, ["dataService", "saveOptions", "queryOptions", "validationOptions"]);
-        var json = __extend(json, exportBundle, ["tempKeys", "entityGroupMap"]);
-=======
         var json = __extend( {}, exportBundle, ["tempKeys", "entityGroupMap"]);
->>>>>>> 9fe7264a8ea74100b2ba57719bc9e8f615dc7393
-
+       
         if (includeMetadata) {
             json = __extend(json, this, ["dataService", "saveOptions", "queryOptions", "validationOptions"]);
             json.metadataStore = this.metadataStore.exportMetadata();
@@ -12393,7 +12388,7 @@ var EntityManager = (function () {
             .whereParam("metadataVersionFn").isFunction().isOptional()
             .applyAll(config);
         var that = this;
-
+            
         var json = (typeof exportedString === "string") ? JSON.parse(exportedString) : exportedString;
         if (json.metadataStore) {
             this.metadataStore.importMetadata(json.metadataStore);
@@ -12409,16 +12404,7 @@ var EntityManager = (function () {
                 metadataStoreName: json.metadataStoreName
             });
         }
-<<<<<<< HEAD
-        // the || clause is for backwards compat with an earlier serialization format.           
-        this.dataService = (json.dataService && DataService.fromJSON(json.dataService)) || new DataService({ serviceName: json.serviceName });
-
-        this.saveOptions = new SaveOptions(json.saveOptions);
-        this.queryOptions = QueryOptions.fromJSON(json.queryOptions);
-        this.validationOptions = new ValidationOptions(json.validationOptions);
-=======
         
->>>>>>> 9fe7264a8ea74100b2ba57719bc9e8f615dc7393
 
         var tempKeyMap = {};
         json.tempKeys.forEach(function (k) {
@@ -12451,7 +12437,7 @@ var EntityManager = (function () {
         };
     };
 
-
+        
     /**
     Clears this EntityManager's cache but keeps all other settings. Note that this 
     method is not as fast as creating a new EntityManager via 'new EntityManager'.
@@ -12467,7 +12453,7 @@ var EntityManager = (function () {
             // remove en
             entityGroup._clear();
         });
-
+            
         this._entityGroupMap = {};
         this._unattachedChildrenMap = new UnattachedChildrenMap();
         this.keyGenerator = new this.keyGeneratorCtor();
@@ -12475,7 +12461,7 @@ var EntityManager = (function () {
         this._setHasChanges(false);
     };
 
-
+  
 
     /**
     Creates an empty copy of this EntityManager
@@ -12488,7 +12474,7 @@ var EntityManager = (function () {
     @return {EntityManager} A new EntityManager.
     **/
     proto.createEmptyCopy = function () {
-        var copy = new ctor(__extend({}, this,
+        var copy = new ctor(__extend({}, this, 
             ["dataService", "metadataStore", "queryOptions", "saveOptions", "validationOptions", "keyGeneratorCtor"]));
         return copy;
     };
@@ -12552,7 +12538,7 @@ var EntityManager = (function () {
                 throw new Error("This entity already belongs to another EntityManager");
             }
         }
-
+            
         var that = this;
         var attachedEntity;
         __using(this, "isLoading", true, function () {
@@ -12580,7 +12566,7 @@ var EntityManager = (function () {
 
         return attachedEntity;
     };
-
+        
 
     /**
     Detaches an entity from this EntityManager.
@@ -12601,7 +12587,7 @@ var EntityManager = (function () {
             // no aspect means in couldn't appear in any group
             return false;
         }
-
+        
         if (aspect.entityManager !== this) {
             throw new Error("This entity does not belong to this EntityManager.");
         }
@@ -12737,16 +12723,9 @@ var EntityManager = (function () {
         var promise;
         // 'resolve' methods create a new typed object with all of its properties fully resolved against a list of sources.
         // Thought about creating a 'normalized' query with these 'resolved' objects
-<<<<<<< HEAD
-        // but decided not to be the 'query' may not be an EntityQuery (it can be a string) and hence might not have a queryOptions or dataServices property on it.
-        // It can be a string.
-        var queryOptions = QueryOptions.resolve([query.queryOptions, this.queryOptions, QueryOptions.defaultInstance]);
-        var dataService = DataService.resolve([query.dataService, this.dataService]);
-=======
         // but decided not to because the 'query' may not be an EntityQuery (it can be a string) and hence might not have a queryOptions or dataServices property on it.
         var queryOptions = QueryOptions.resolve([ query.queryOptions, this.queryOptions, QueryOptions.defaultInstance]);
         var dataService = DataService.resolve([ query.dataService, this.dataService]);
->>>>>>> 9fe7264a8ea74100b2ba57719bc9e8f615dc7393
 
         if ((!dataService.hasServerMetadata) || this.metadataStore.hasMetadataFor(dataService.serviceName)) {
             promise = executeQueryCore(this, query, queryOptions, dataService);
@@ -12759,7 +12738,7 @@ var EntityManager = (function () {
 
         return promiseWithCallbacks(promise, callback, errorCallback);
     };
-
+    
     /**
     Executes the specified query against this EntityManager's local cache.
 
@@ -12787,7 +12766,7 @@ var EntityManager = (function () {
     **/
     proto.executeQueryLocally = function (query) {
         assertParam(query, "query").isInstanceOf(EntityQuery).check();
-
+        
         var metadataStore = this.metadataStore;
         var entityType = query._getFromEntityType(metadataStore, true);
         // there may be multiple groups is this is a base entity type.
@@ -12808,7 +12787,7 @@ var EntityManager = (function () {
         groups.forEach(function (group) {
             result.push.apply(result, group._entities.filter(newFilterFunc));
         });
-
+            
         var orderByComparer = query._toOrderByComparer(entityType);
         if (orderByComparer) {
             result.sort(orderByComparer);
@@ -12904,27 +12883,21 @@ var EntityManager = (function () {
         assertParam(saveOptions, "saveOptions").isInstanceOf(SaveOptions).isOptional().check();
         assertParam(callback, "callback").isFunction().isOptional().check();
         assertParam(errorCallback, "errorCallback").isFunction().isOptional().check();
-
+            
         saveOptions = saveOptions || this.saveOptions || SaveOptions.defaultInstance;
         var isFullSave = entities == null;
         var entitiesToSave = getEntitiesToSave(this, entities);
-
+            
         if (entitiesToSave.length === 0) {
-<<<<<<< HEAD
-            var saveResult = { entities: [], keyMappings: [] };
-            if (callback) callback(saveResult);
-            return Q.resolve(saveResult);
-=======
             var result =  { entities: [], keyMappings: [] };
             if (callback) callback(result);
             return Q.resolve(result);
->>>>>>> 9fe7264a8ea74100b2ba57719bc9e8f615dc7393
         }
-
+            
         if (!saveOptions.allowConcurrentSaves) {
             var anyPendingSaves = entitiesToSave.some(function (entity) {
                 return entity.entityAspect.isBeingSaved;
-            });
+            });                
             if (anyPendingSaves) {
                 var err = new Error("Concurrent saves not allowed - SaveOptions.allowConcurrentSaves is false");
                 if (errorCallback) errorCallback(err);
@@ -12933,7 +12906,7 @@ var EntityManager = (function () {
         }
 
         clearServerErrors(entitiesToSave);
-
+            
         if (this.validationOptions.validateOnSave) {
             var failedEntities = entitiesToSave.filter(function (entity) {
                 var aspect = entity.entityAspect;
@@ -12947,41 +12920,21 @@ var EntityManager = (function () {
                 return Q.reject(valError);
             }
         }
-<<<<<<< HEAD
-
-        updateConcurrencyProperties(entitiesToSave);
-
-
-=======
-           
->>>>>>> 9fe7264a8ea74100b2ba57719bc9e8f615dc7393
+            
         var dataService = DataService.resolve([saveOptions.dataService, this.dataService]);
         var saveContext = {
             entityManager: this,
             dataService: dataService,
             processSavedEntities: processSavedEntities,
             resourceName: saveOptions.resourceName || this.saveOptions.resourceName || "SaveChanges"
-        };
+        };       
 
         // TODO: need to check that if we are doing a partial save that all entities whose temp keys 
         // are referenced are also in the partial save group
 
         var saveBundle = { entities: entitiesToSave, saveOptions: saveOptions };
-
-<<<<<<< HEAD
-        var that = this;
-        return dataService.adapterInstance.saveChanges(saveContext, saveBundle).then(function (saveResult) {
-
-            fixupKeys(that, saveResult.keyMappings);
-
-            var mappingContext = new MappingContext({
-                query: null, // tells visitAndMerge that this is a save instead of a query
-                entityManager: that,
-                mergeOptions: { mergeStrategy: MergeStrategy.OverwriteChanges },
-                dataService: dataService
-            });
-=======
         
+            
         try { // Guard against exception thrown in dataservice adapter before it goes async
             updateConcurrencyProperties(entitiesToSave);
             return dataService.adapterInstance.saveChanges(saveContext, saveBundle)
@@ -12992,11 +12945,10 @@ var EntityManager = (function () {
             if (errorCallback) errorCallback(err);
             return Q.reject(err);
         }
-
+            
         function saveSuccess(saveResult) {
             var em = saveContext.entityManager;
             var savedEntities = saveResult.entities = saveContext.processSavedEntities(saveResult);
->>>>>>> 9fe7264a8ea74100b2ba57719bc9e8f615dc7393
 
             // update _hasChanges after save.
             var hasChanges = (isFullSave && haveSameContents(entitiesToSave, savedEntities)) ? false : null;
@@ -13022,12 +12974,12 @@ var EntityManager = (function () {
                 var mappingContext = new MappingContext({
                     query: null, // tells visitAndMerge this is a save instead of a query
                     entityManager: em,
-                    mergeOptions: { mergeStrategy: MergeStrategy.OverwriteChanges },
-                    dataService: dataService
-                });
+                mergeOptions: { mergeStrategy: MergeStrategy.OverwriteChanges },
+                dataService: dataService
+            });
 
                 // The visitAndMerge operation has been optimized so that we do not actually perform a merge if the 
-                // the save operation did not actually return the entity - i.e. during OData and Mongo updates and deletes.
+            // the save operation did not actually return the entity - i.e. during OData and Mongo updates and deletes.
                 savedEntities = mappingContext.visitAndMerge(savedEntities, { nodeType: "root" });
             });
             
@@ -13065,7 +13017,7 @@ var EntityManager = (function () {
             __objectForEach(entity.entityAspect._validationErrors, function (key, ve) {
                 var cfg = __extend({
                     entity: entity,
-                    errorName: ve.validator.name
+                    errorName: ve.validator.name 
                 }, ve, ["errorMessage", "propertyName", "isServerError"]);
                 entityErrors.push(cfg);
             });
@@ -13085,8 +13037,8 @@ var EntityManager = (function () {
                 var entityType = metadataStore._getEntityType(serr.entityTypeName);
                 var ekey = new EntityKey(entityType, serr.keyValues);
                 entity = entityManager.findEntityByKey(ekey);
-            }
-
+            } 
+           
             if (entity) {
                 var context = serr.propertyName ?
                 {
@@ -13108,7 +13060,7 @@ var EntityManager = (function () {
             return entityError;
         });
     }
-
+    
     function haveSameContents(arr1, arr2) {
         if (arr1.length !== arr2.length) {
             return false;
@@ -13119,12 +13071,12 @@ var EntityManager = (function () {
         return true;
     }
 
-
+    
     proto._findEntityGroup = function (entityType) {
         return this._entityGroupMap[entityType.name];
     };
 
-
+        
     /**
     Attempts to locate an entity within this EntityManager by its key. 
     @example
@@ -13136,7 +13088,7 @@ var EntityManager = (function () {
     @param keyValues {Object|Array of Object} The values for this key - will usually just be a single value; an array is only needed for multipart keys.
     @return {Entity} An Entity or null;
     **/
-
+        
     /**
     Attempts to locate an entity within this EntityManager by its  {{#crossLink "EntityKey"}}{{/crossLink}}.
     @example
@@ -13165,9 +13117,9 @@ var EntityManager = (function () {
             return group && group.findEntityByKey(entityKey);
         }
     };
+    
 
-
-
+        
     /**
     Attempts to fetch an entity from the server by its key with
     an option to check the local cache first. Note the this EntityManager's queryOptions.mergeStrategy 
@@ -13190,7 +13142,7 @@ var EntityManager = (function () {
         promiseData.entityKey {EntityKey} The entityKey of the entity to fetch.
         promiseData.fromCache {Boolean} Whether this entity was fetched from the server or was found in the local cache.
     **/
-
+        
     /**
     Attempts to fetch an entity from the server by its {{#crossLink "EntityKey"}}{{/crossLink}} with
     an option to check the local cache first. 
@@ -13243,21 +13195,17 @@ var EntityManager = (function () {
                     isDeleted = false;
                 }
             }
-        }
+        } 
         if (entity || isDeleted) {
             return Q.resolve({ entity: entity, entityKey: entityKey, fromCache: true });
         } else {
-<<<<<<< HEAD
-            return EntityQuery.fromEntityKey(entityKey).using(this).execute().then(function (data) {
-=======
             return EntityQuery.fromEntityKey(entityKey).using(em).execute().then(function(data) {
->>>>>>> 9fe7264a8ea74100b2ba57719bc9e8f615dc7393
                 entity = (data.results.length === 0) ? null : data.results[0];
                 return Q.resolve({ entity: entity, entityKey: entityKey, fromCache: false });
             });
         }
     };
-
+        
     /**
     Attempts to locate an entity within this EntityManager by its  {{#crossLink "EntityKey"}}{{/crossLink}}.
     @example
@@ -13315,7 +13263,7 @@ var EntityManager = (function () {
         entity.entityAspect.hasTempKey = true;
         return nextKeyValue;
     };
-
+        
     /**
     Returns whether there are any changed entities of the specified {{#crossLink "EntityType"}}{{/crossLink}}s. A 'changed' Entity has
     has an {{#crossLink "EntityState"}}{{/crossLink}} of either Added, Modified or Deleted.
@@ -13351,7 +13299,7 @@ var EntityManager = (function () {
         if (entityTypes === undefined) return this._hasChanges;
         return this._hasChangesCore(entityTypes);
     };
-
+        
     /**
     An {{#crossLink "Event"}}{{/crossLink}} that fires whenever an EntityManager transitions to or from having changes. 
     @example                    
@@ -13367,8 +13315,8 @@ var EntityManager = (function () {
     @param hasChanges {Boolean} Whether or not this EntityManager has changes.
     @readOnly
     **/
-
-
+        
+        
     // backdoor the "really" check for changes.
     proto._hasChangesCore = function (entityTypes) {
         entityTypes = checkEntityTypes(this, entityTypes);
@@ -13377,7 +13325,7 @@ var EntityManager = (function () {
             return eg.hasChanges();
         });
     };
-
+        
     /**
     Returns a array of all changed entities of the specified {{#crossLink "EntityType"}}{{/crossLink}}s. A 'changed' Entity has
     has an {{#crossLink "EntityState"}}{{/crossLink}} of either Added, Modified or Deleted.
@@ -13431,7 +13379,7 @@ var EntityManager = (function () {
         this.hasChangesChanged.publish({ entityManager: this, hasChanges: false });
         return changes;
     };
-
+        
     /**
     Returns a array of all entities of the specified {{#crossLink "EntityType"}}{{/crossLink}}s with the specified {{#crossLink "EntityState"}}{{/crossLink}}s. 
     @example
@@ -13466,14 +13414,14 @@ var EntityManager = (function () {
     proto.getEntities = function (entityTypes, entityStates) {
         entityTypes = checkEntityTypes(this, entityTypes);
         assertParam(entityStates, "entityStates").isOptional().isEnumOf(EntityState).or().isNonEmptyArray().isEnumOf(EntityState).check();
-
+            
         if (entityStates) {
             entityStates = validateEntityStates(this, entityStates);
         }
         return getEntitiesCore(this, entityTypes, entityStates);
     };
-
-
+        
+   
 
     // protected methods
 
@@ -13589,7 +13537,7 @@ var EntityManager = (function () {
                 });
             }
 
-
+            
             // now add to unattachedMap if needed.
             entity.entityType.navigationProperties.forEach(function (np) {
                 if (np.isScalar) {
@@ -13614,7 +13562,7 @@ var EntityManager = (function () {
                         // else add parent to unresolvedParentMap;
                         unattachedMap.addChild(parentKey, np, entity);
                     }
-                }
+                } 
             });
 
             // handle unidirectional 1-x where we set x.fk
@@ -13625,7 +13573,7 @@ var EntityManager = (function () {
                 var fkValue = entity.getProperty(fkProp.name);
                 var parentKey = new EntityKey(invNp.parentType, [fkValue]);
                 var parent = em.findEntityByKey(parentKey);
-
+                
                 if (parent) {
                     if (invNp.isScalar) {
                         parent.setProperty(invNp.name, entity);
@@ -13678,32 +13626,19 @@ var EntityManager = (function () {
         });
         return selected || [];
     }
-
+        
     function createEntityKey(em, args) {
-<<<<<<< HEAD
+        try {
         if (args[0] instanceof EntityKey) {
             return { entityKey: args[0], remainingArgs: __arraySlice(args, 1) };
-        } else if (typeof args[0] === 'string' && args.length >= 2) {
-            var entityType = em.metadataStore._getEntityType(args[0], false);
-            return { entityKey: new EntityKey(entityType, args[1]), remainingArgs: __arraySlice(args, 2) };
-        } else {
-            throw new Error("This method requires as its initial parameters either an EntityKey or an entityType name followed by a value or an array of values.");
-        }
-    }
-
-=======
-        try {
-            if (args[0] instanceof EntityKey) {
-                return { entityKey: args[0], remainingArgs: __arraySlice(args, 1) };
             } else if (args.length >= 2) {
                 var entityType = (typeof args[0] === 'string') ? em.metadataStore._getEntityType(args[0], false) : args[0];
-                return { entityKey: new EntityKey(entityType, args[1]), remainingArgs: __arraySlice(args, 2) };
-            }
+            return { entityKey: new EntityKey(entityType, args[1]), remainingArgs: __arraySlice(args, 2) };
+        }
         } catch (e) {/* throw below */}
         throw new Error("Must supply an EntityKey OR an EntityType name or EntityType followed by a key value or an array of key values.");
-    }      
+    }       
         
->>>>>>> 9fe7264a8ea74100b2ba57719bc9e8f615dc7393
     function markIsBeingSaved(entities, flag) {
         entities.forEach(function (entity) {
             entity.entityAspect.isBeingSaved = flag;
@@ -13756,7 +13691,7 @@ var EntityManager = (function () {
     }
 
     function structuralObjectToJson(so, dps, serializerFn, tempKeys) {
-
+        
         var result = {};
         dps.forEach(function (dp) {
             var dpName = dp.name;
@@ -13798,10 +13733,10 @@ var EntityManager = (function () {
             if (aspect.originalValues && !__isEmpty(aspect.originalValues)) {
                 newAspect.originalValuesMap = aspect.originalValues;
             }
-
+            
             result.complexAspect = newAspect;
         }
-
+        
         return result;
     }
 
@@ -13833,14 +13768,14 @@ var EntityManager = (function () {
         var mergeStrategy = config.mergeStrategy;
 
         var targetEntity = null;
-
+        
         var em = entityGroup.entityManager;
         var entityChanged = em.entityChanged;
         var entitiesToLink = [];
         var rawValueFn = DataProperty.getRawValueFromClient;
         jsonGroup.entities.forEach(function (rawEntity) {
             var newAspect = rawEntity.entityAspect;
-
+            
             var entityKey = entityType.getEntityKeyFromRawEntity(rawEntity, rawValueFn);
             var entityState = EntityState.fromName(newAspect.entityState);
             var newTempKey;
@@ -13864,15 +13799,8 @@ var EntityManager = (function () {
                         targetEntity.entityAspect.entityState = entityState;
                         entityChanged.publish({ entityAction: EntityAction.MergeOnImport, entity: targetEntity });
                         em._checkStateChange(targetEntity, wasUnchanged, entityState.isUnchanged());
-<<<<<<< HEAD
-                    } else {
-                        entitiesToLink.push(targetEntity);
-                        targetEntity = null;
-                    }
-=======
                         
                     } 
->>>>>>> 9fe7264a8ea74100b2ba57719bc9e8f615dc7393
                 }
             } else {
                 targetEntity = entityType._createInstanceCore();
@@ -13899,19 +13827,19 @@ var EntityManager = (function () {
                 // Now performed in attachEntity
                 // entityType._initializeInstance(targetEntity);
                 targetEntity = entityGroup.attachEntity(targetEntity, entityState);
-                entityChanged.publish({ entityAction: EntityAction.AttachOnImport, entity: targetEntity });
-                if (!entityState.isUnchanged()) {
-                    em._notifyStateChange(targetEntity, true);
-                }
-                
-            }
+                    entityChanged.publish({ entityAction: EntityAction.AttachOnImport, entity: targetEntity });
+                    if (!entityState.isUnchanged()) {
+                        em._notifyStateChange(targetEntity, true);
+                    }
 
-            entitiesToLink.push(targetEntity);
+                }
+
+                entitiesToLink.push(targetEntity);
         });
         return entitiesToLink;
     }
 
-    function promiseWithCallbacks(promise, callback, errorCallback) {
+     function promiseWithCallbacks(promise, callback, errorCallback) {
 
         promise = promise.then(function (data) {
             if (callback) callback(data);
@@ -14029,11 +13957,11 @@ var EntityManager = (function () {
     function executeQueryCore(em, query, queryOptions, dataService) {
         try {
             var metadataStore = em.metadataStore;
-
+            
             if (metadataStore.isEmpty() && dataService.hasServerMetadata) {
                 throw new Error("cannot execute _executeQueryCore until metadataStore is populated.");
             }
-
+            
             if (queryOptions.fetchStrategy === FetchStrategy.FromLocalCache) {
                 try {
                     var results = em.executeQueryLocally(query);
@@ -14044,17 +13972,17 @@ var EntityManager = (function () {
             }
 
             var mappingContext = new MappingContext({
-                query: query,
-                entityManager: em,
-                dataService: dataService,
-                mergeOptions: {
-                    mergeStrategy: queryOptions.mergeStrategy,
-                    noTracking: !!query.noTrackingEnabled
-                }
+                    query: query,
+                    entityManager: em,
+                    dataService: dataService,
+                    mergeOptions: {
+                        mergeStrategy: queryOptions.mergeStrategy,
+                        noTracking: !!query.noTrackingEnabled
+                    }
             });
-
+            
             var validateOnQuery = em.validationOptions.validateOnQuery;
-
+           
             return dataService.adapterInstance.executeQuery(mappingContext).then(function (data) {
                 var result = __wrapExecution(function () {
                     var state = { isLoading: em.isLoading };
@@ -14071,7 +13999,7 @@ var EntityManager = (function () {
                     query = null;
                     mappingContext = null;
                     // HACK: some errors thrown in next function do not propogate properly - this catches them.
-
+                    
                     if (state.error) {
                         Q.reject(state.error);
                     }
@@ -14079,7 +14007,7 @@ var EntityManager = (function () {
                 }, function () {
                     var nodes = dataService.jsonResultsAdapter.extractResults(data);
                     nodes = __toArray(nodes);
-
+                    
                     var results = mappingContext.visitAndMerge(nodes, { nodeType: "root" });
                     if (validateOnQuery) {
                         results.forEach(function (r) {
@@ -14098,7 +14026,7 @@ var EntityManager = (function () {
                 }
                 return Q.reject(e);
             });
-
+            
         } catch (e) {
             if (e) {
                 e.query = query;
@@ -14106,7 +14034,7 @@ var EntityManager = (function () {
             return Q.reject(e);
         }
     }
-
+   
     function updateConcurrencyProperties(entities) {
         var candidates = entities.filter(function (e) {
             e.entityAspect.isBeingSaved = true;
@@ -14168,17 +14096,17 @@ var EntityManager = (function () {
             return findOrCreateEntityGroup(em, et);
         });
     }
-
+        
 
     proto.helper = {
         unwrapInstance: unwrapInstance,
         unwrapOriginalValues: unwrapOriginalValues,
         unwrapChangedValues: unwrapChangedValues,
     };
-
-
+    
+   
     function unwrapInstance(structObj, transformFn, options) {
-
+        
         options = options || { readedAssociations: [], isChildren: false, isIgnored: false };
         var readedAssociations =
             options.readedAssociations = options.readedAssociations || [];
@@ -14272,14 +14200,14 @@ var EntityManager = (function () {
 
             }
         });
-
+        
         if (!__isEmpty(unmapped)) {
             rawObject.__unmapped = unmapped;
         }
 
         return rawObject;
     }
-
+    
     function unwrapOriginalValues(target, metadataStore, transformFn) {
         var stype = target.entityType || target.complexType;
         var aspect = target.entityAspect || target.complexAspect;
@@ -14308,7 +14236,7 @@ var EntityManager = (function () {
         });
         return result;
     }
-
+    
     function unwrapChangedValues(target, metadataStore, transformFn) {
         var stype = target.entityType || target.complexType;
         var serializerFn = getSerializerFn(stype);
@@ -14400,11 +14328,11 @@ var EntityManager = (function () {
     return ctor;
 })();
 
-
+   
 // expose
 breeze.EntityManager = EntityManager;
 
-;/**
+/**
 @module breeze
 **/
 
@@ -14774,7 +14702,7 @@ var MappingContext = (function () {
             relatedEntities.push(relatedEntity);
             // Verify if inverse property is scalar...
             if (inverseProperty.isScalar)
-                relatedEntity.setProperty(inverseProperty.name, targetEntity);
+            relatedEntity.setProperty(inverseProperty.name, targetEntity);
                 // if is a collection is a many-to-many, push target entity...
             else {
                 var nonScalarProperty = relatedEntity.getProperty(inverseProperty.name);
@@ -14789,7 +14717,7 @@ var MappingContext = (function () {
    
 
 
-;/**
+/**
 @module breeze
 **/
    
@@ -14893,7 +14821,7 @@ var SaveOptions = (function () {
 breeze.SaveOptions= SaveOptions;
 
 
-;breeze.AbstractDataServiceAdapter = (function () {
+breeze.AbstractDataServiceAdapter = (function () {
     
     var ajaxImpl;
     
@@ -15115,7 +15043,7 @@ breeze.SaveOptions= SaveOptions;
     return ctor;
 
 })();
-;// needs Angular
+// needs Angular
 (function(factory) {
     // Module systems magic dance.
     if (breeze) {
@@ -15245,7 +15173,7 @@ breeze.SaveOptions= SaveOptions;
     breeze.config.registerAdapter("ajax", ctor);
     
 }));
-;// needs JQuery
+// needs JQuery
 (function(factory) {
     // Module systems magic dance.
     if (breeze) {
@@ -15336,7 +15264,7 @@ breeze.SaveOptions= SaveOptions;
     breeze.config.registerAdapter("ajax", ctor);
     
 }));
-;(function (factory) {
+(function (factory) {
     if (breeze) {
         factory(breeze);
     } else if (typeof require === "function" && typeof exports === "object" && typeof module === "object") {
@@ -15372,7 +15300,7 @@ breeze.SaveOptions= SaveOptions;
     
         var deferred = Q.defer();
         var url = mappingContext.getUrl();
-
+        
         var paramSeparation = '?';
         if (url.indexOf('?') > -1)
             paramSeparation = '&';
@@ -15418,8 +15346,8 @@ breeze.SaveOptions= SaveOptions;
             return deferred.reject(createError(response.statusText, mappingContext.url));
             },
             function (error) {
-            return deferred.reject(createError(error, mappingContext.url));
-        }, OData.batchHandler);
+                return deferred.reject(createError(error, mappingContext.url));
+            }, OData.batchHandler);
         //OData.read(url,
         //    function (data, response) {
         //        return deferred.resolve({ results: data.results, inlineCount: data.__count });
@@ -15488,8 +15416,7 @@ breeze.SaveOptions= SaveOptions;
 
         var helper = saveContext.entityManager.helper;
         var url = saveContext.dataService.makeUrl("$batch");
-<<<<<<< HEAD
-        
+
         var requestData = createChangeRequests(saveContext, saveBundle);
         var innerEntities = requestData.__innerEntities || [];
         delete requestData.__innerEntities;
@@ -15499,10 +15426,8 @@ breeze.SaveOptions= SaveOptions;
             return deferred.promise;
         }
 
-=======
         var routePrefix = this.getRoutePrefix(saveContext.dataService);
         var requestData = createChangeRequests(saveContext, saveBundle, routePrefix);
->>>>>>> 9fe7264a8ea74100b2ba57719bc9e8f615dc7393
         var tempKeys = saveContext.tempKeys;
         var contentKeys = saveContext.contentKeys;
         var that = this;
@@ -15584,7 +15509,7 @@ breeze.SaveOptions= SaveOptions;
         
     });
 
-    function transformValue(prop, val ) {
+    function transformValue(prop, val) {
         if (prop.isUnmapped) return undefined;
         if (prop.dataType === breeze.DataType.DateTimeOffset) {
             // The datajs lib tries to treat client dateTimes that are defined as DateTimeOffset on the server differently
@@ -15596,15 +15521,26 @@ breeze.SaveOptions= SaveOptions;
         return val;
     }
 
-<<<<<<< HEAD
-    function createChangeRequests(saveContext, saveBundle) {
+    function _getEntityId(entity) {
+        var prefix = "", sufix = "";
+        if (entity.entityType.keyProperties[0].dataType.name == "Guid") {
+            prefix = "guid'";
+            sufix = "'";
+        }
+        return prefix + entity.entityAspect.getKey().values[0] + sufix;
+    }
+
+    function _getEntityUri(prefix, entity) {
+        var extraMetadata = entity.entityAspect.extraMetadata;
+        return extraMetadata != null ? (extraMetadata.uri || extraMetadata.id)
+            : (location.origin + prefix + entity.entityType.defaultResourceName + "(" + _getEntityId(entity) + ")");
+    }
+
+    function createChangeRequests(saveContext, saveBundle, routePrefix) {
         var innerEntities = [];
         var readedAssociations = [];
         var createdCREntities = [];
         var linksRequest = [];
-=======
-    function createChangeRequests(saveContext, saveBundle, routePrefix) {
->>>>>>> 9fe7264a8ea74100b2ba57719bc9e8f615dc7393
         var changeRequests = [];
         var tempKeys = [];
         var contentKeys = [];
@@ -15619,28 +15555,12 @@ breeze.SaveOptions= SaveOptions;
             var request = { headers: { "Content-ID": id, "DataServiceVersion": "2.0" } };
             contentKeys[id] = entity;
 
-            var getId = function (entity) {
-                var prefix = "", sufix = "";
-                if (entity.entityType.keyProperties[0].dataType.name == "Guid") {
-                    prefix = "guid'";
-                    sufix = "'";
-                }
-                return prefix + entity.entityAspect.getKey().values[0] + sufix;
-            };
-
             if (entity.entityAspect.entityState.isModified()) {
                 aspect.inseredLinks.forEach(function (inseredLink) {
                     if (!inseredLink.entity.entityAspect.entityState.isAdded()
                         && !inseredLink.entity.entityAspect.entityState.isDeleted()) {
                         var linkRequest = { headers: { "Content-ID": id, "DataServiceVersion": "3.0" } };
-                        if (aspect.extraMetadata) {
-                            linkRequest.requestUri = aspect.extraMetadata.uri
-                                + "/$links/" + inseredLink.np.name;
-                        }
-                        else {
-                            linkRequest.requestUri = location.origin + prefix + aspect.entity.entityType.defaultResourceName + "(" + getId(entity) + ")"
-                                + "/$links/" + inseredLink.np.name;
-                        }
+                        linkRequest.requestUri = _getEntityUri(prefix, entity) + "/$links/" + inseredLink.np.name;
                         linkRequest.method = "POST";
 
                         var baseType = inseredLink.entity.entityType;
@@ -15649,7 +15569,7 @@ breeze.SaveOptions= SaveOptions;
 
                         linkRequest.data = {
                             uri: (inseredLink.entity.entityAspect.extraMetadata ? inseredLink.entity.entityAspect.extraMetadata.id : null) ||
-                                prefix + baseType.defaultResourceName + "(" + getId(inseredLink.entity) + ")"
+                                prefix + baseType.defaultResourceName + "(" + _getEntityId(inseredLink.entity) + ")"
                         };
 
                         linksRequest.push(linkRequest);
@@ -15662,10 +15582,8 @@ breeze.SaveOptions= SaveOptions;
                             && !removedLink.entity.entityAspect.entityState.isDeleted()) {
                             var linkRequest = { headers: { "Content-ID": id, "DataServiceVersion": "3.0" } };
                             // DELETE /OData/OData.svc/Categories(1)/$links/Products(10)
-                            linkRequest.requestUri = aspect.extraMetadata.uri
-                                + "/$links/" + removedLink.np.name + "(" + getId(removedLink.entity) + ")";
-                            //linkRequest.requestUri = prefix + entity.entityType.defaultResourceName + "(" + getId(entity) + ")"
-                            //    + "/$links/" + removedLink.np.name + "(" + getId(removedLink.entity) + ")";
+                            linkRequest.requestUri = _getEntityUri(prefix, aspect.entity)
+                                + "/$links/" + removedLink.np.name + "(" + _getEntityId(removedLink.entity) + ")";
                             linkRequest.method = "DELETE";
                             linksRequest.push(linkRequest);
                         }
@@ -15674,12 +15592,9 @@ breeze.SaveOptions= SaveOptions;
             }
 
             if (aspect.entityState.isAdded()) {
-<<<<<<< HEAD
                 var options = { readedAssociations: readedAssociations };
                 insertRequest(request, entity.entityType);
-=======
                 request.requestUri = routePrefix + entity.entityType.defaultResourceName;
->>>>>>> 9fe7264a8ea74100b2ba57719bc9e8f615dc7393
                 request.method = "POST";
                 request.data = helper.unwrapInstance(entity, transformValue, options);
                 tempKeys[id] = aspect.getKey();
@@ -15724,7 +15639,6 @@ breeze.SaveOptions= SaveOptions;
 
     }
 
-<<<<<<< HEAD
     function insertRequest(request, entityType) {
         var lastBaseType = null;
         var sbaseType = entityType;
@@ -15743,21 +15657,15 @@ breeze.SaveOptions= SaveOptions;
         request.requestUri = defaultResourceName;
     }
 
-    function updateDeleteMergeRequest(request, aspect, prefix) {
-        var extraMetadata = aspect.extraMetadata;
-        var uri = extraMetadata.uri || extraMetadata.id;
-        if (core.stringStartsWith(uri, prefix)) {
-            uri = uri.substring(prefix.length);
-=======
     function updateDeleteMergeRequest(request, aspect, baseUri, routePrefix) {
         var extraMetadata = aspect.extraMetadata;
         var uri = extraMetadata.uri || extraMetadata.id;
         if (core.stringStartsWith(uri, baseUri)) {
             uri = routePrefix + uri.substring(baseUri.length);
->>>>>>> 9fe7264a8ea74100b2ba57719bc9e8f615dc7393
         }
         request.requestUri = uri;
-        if (extraMetadata.etag) {
+        if (aspect.extraMetadata &&
+            aspect.extraMetadata.etag) {
             request.headers["If-Match"] = extraMetadata.etag;
         }
     }
@@ -15827,7 +15735,8 @@ breeze.SaveOptions= SaveOptions;
 
     breeze.config.registerAdapter("dataService", webApiODataCtor);
 
-}));;(function(factory) {
+}));
+(function(factory) {
     if (breeze) {
         factory(breeze);
     } else if (typeof require === "function" && typeof exports === "object" && typeof module === "object") {
@@ -15918,7 +15827,8 @@ breeze.SaveOptions= SaveOptions;
     
     breeze.config.registerAdapter("dataService", ctor);
 
-}));;"use strict";
+}));
+"use strict";
 (function (factory) {
     if (breeze) {
         factory(breeze);
@@ -16123,7 +16033,7 @@ breeze.SaveOptions= SaveOptions;
     // private methods
 
 }));
-;"use strict";
+"use strict";
 (function (factory) {
     if (breeze) {
         factory(breeze);
@@ -16406,7 +16316,7 @@ breeze.SaveOptions= SaveOptions;
     breeze.config.registerAdapter("modelLibrary", ctor);
 
 }));
-;"use strict";
+"use strict";
 (function (factory) {
     if (breeze) {
         factory(breeze);
@@ -16670,7 +16580,7 @@ breeze.SaveOptions= SaveOptions;
     breeze.config.registerAdapter("modelLibrary", ctor);
     
 }));
-;
+
 // set defaults
 // will no longer fail at initialization time if jQuery is not found.
 breeze.config.initializeAdapterInstances( { dataService: "webApi", ajax: "jQuery" });

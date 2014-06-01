@@ -67,21 +67,22 @@
                 ]
             }
         }, function (batchData, response) {
-            var response = batchData.__batchResponses[0];
-            var data = response.data;
-            if (response.statusCode == 200) {
-                var inlineCount;
-                if (data.__count) {
-                    // OData can return data.__count as a string
-                    inlineCount = parseInt(data.__count, 10);
+            if (batchData) {
+                var response = batchData.__batchResponses[0];
+                var data = response.data;
+                if (response.statusCode == 200) {
+                    var inlineCount;
+                    if (data.__count) {
+                        // OData can return data.__count as a string
+                        inlineCount = parseInt(data.__count, 10);
+                    }
+                    return deferred.resolve({ results: data.results, inlineCount: inlineCount });
                 }
-                return deferred.resolve({ results: data.results, inlineCount: inlineCount });
             }
-            return deferred.reject(createError(response.statusText, mappingContext.url));
-            },
-            function (error) {
-                return deferred.reject(createError(error, mappingContext.url));
-            }, OData.batchHandler);
+            return deferred.reject(createError({ response: response }, mappingContext.url));
+        }, function (error) {
+            return deferred.reject(createError(error, mappingContext.url));
+        }, OData.batchHandler);
         //OData.read(url,
         //    function (data, response) {
         //        return deferred.resolve({ results: data.results, inlineCount: data.__count });
@@ -101,14 +102,17 @@
         var serviceName = dataService.serviceName;
         var url = dataService.makeUrl('$metadata');
         
-        //OData.read({
-        //    requestUri: url,
-        //    headers: {
-        //        "Accept": "application/json",
-        //    }
-        //},
-        OData.read(url,
+        OData.read({
+                requestUri: url,
+                headers: {
+                    "Accept": "application/json",
+                }
+            },
             function (data) {
+                var statusCode = response.statusCode;
+                if ((!statusCode) || statusCode == 203 || statusCode >= 400) {
+                    return deferred.reject(createError({ response: response }, url));
+                }
                 // data.dataServices.schema is an array of schemas. with properties of 
                 // entityContainer[], association[], entityType[], and namespace.
                 if (!data || !data.dataServices) {
@@ -166,11 +170,15 @@
         var contentKeys = saveContext.contentKeys;
         var that = this;
         OData.request({
-            headers: { "DataServiceVersion": "2.0" },
+            headers: { "DataServiceVersion": "2.0", "Accept": "application/json" },
             requestUri: url,
             method: "POST",
             data: requestData
         }, function (data, response) {
+            var statusCode = response.statusCode;
+            if ((!statusCode) || statusCode == 203 || statusCode >= 400) {
+                return deferred.reject(createError({ response: response }, url));
+            }
             var entities = innerEntities;
             var keyMappings = [];
             var saveResult = { entities: entities, keyMappings: keyMappings };
