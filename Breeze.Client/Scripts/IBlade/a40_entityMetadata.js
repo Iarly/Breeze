@@ -248,7 +248,7 @@ var MetadataStore = (function () {
         var json = (typeof (exportedMetadata) === "string") ? JSON.parse(exportedMetadata) : exportedMetadata;
 
         if (json.schema) {
-            return CsdlMetadataParser.parse(this, json.schema, json.altMetadata);
+            return CsdlMetadataParser.parse(this, json.schema, json.altMetadata, this.onCreateModel);
         } 
 
         if (json.metadataVersion && json.metadataVersion !== breeze.metadataVersion) {
@@ -745,7 +745,7 @@ var MetadataStore = (function () {
 
 var CsdlMetadataParser = (function () {
 
-    function parse(metadataStore, schemas, altMetadata) {
+    function parse(metadataStore, schemas, altMetadata, onCreateModel) {
 
         metadataStore._entityTypeResourceMap = {};
         __toArray(schemas).forEach(function (schema) {
@@ -777,7 +777,7 @@ var CsdlMetadataParser = (function () {
             }
             if (schema.entityType) {
                 __toArray(schema.entityType).forEach(function (et) {
-                    var entityType = parseCsdlEntityType(et, schema, metadataStore);
+                    var entityType = parseCsdlEntityType(et, schema, metadataStore, onCreateModel);
 
                 });
             }
@@ -793,7 +793,7 @@ var CsdlMetadataParser = (function () {
         return metadataStore;
     }
 
-    function parseCsdlEntityType(csdlEntityType, schema, metadataStore) {
+    function parseCsdlEntityType(csdlEntityType, schema, metadataStore, onCreateModel) {
         var shortName = csdlEntityType.name;
         var ns = getNamespaceFor(shortName, schema);
         var entityType = new EntityType({
@@ -806,7 +806,7 @@ var CsdlMetadataParser = (function () {
             entityType.baseTypeName = baseTypeName;
             var baseEntityType = metadataStore._getEntityType(baseTypeName, true);
             if (baseEntityType) {
-                completeParseCsdlEntityType(entityType, csdlEntityType, schema, metadataStore, baseEntityType);
+                completeParseCsdlEntityType(entityType, csdlEntityType, schema, metadataStore, baseEntityType, onCreateModel);
             } else {
                 var deferrals = metadataStore._deferredTypes[baseTypeName];
                 if (!deferrals) {
@@ -816,14 +816,14 @@ var CsdlMetadataParser = (function () {
                 deferrals.push({ entityType: entityType, csdlEntityType: csdlEntityType });
             }
         } else {
-            completeParseCsdlEntityType(entityType, csdlEntityType, schema, metadataStore, null);
+            completeParseCsdlEntityType(entityType, csdlEntityType, schema, metadataStore, null, onCreateModel);
         }
         // entityType may or may not have been added to the metadataStore at this point.
         return entityType;
 
     }
 
-    function completeParseCsdlEntityType(entityType, csdlEntityType, schema, metadataStore, baseEntityType) {
+    function completeParseCsdlEntityType(entityType, csdlEntityType, schema, metadataStore, baseEntityType, onCreateModel) {
         var baseKeyNamesOnServer = [];
         if (baseEntityType) {
             entityType.baseEntityType = baseEntityType;
@@ -859,33 +859,13 @@ var CsdlMetadataParser = (function () {
         var deferrals = deferredTypes[entityType.name];
         if (deferrals) {
             deferrals.forEach(function (d) {
-                completeParseCsdlEntityType(d.entityType, d.csdlEntityType, schema, metadataStore, entityType);
+                completeParseCsdlEntityType(d.entityType, d.csdlEntityType, schema, metadataStore, entityType, onCreateModel);
             });
             delete deferredTypes[entityType.name];
         }
 
-        if (entityType && (Ext && Ext.define)) {
-            Ext.define(entityType.namespace + '.' + entityType.shortName, {
-                extend: 'Ext.data.Model',
-                fields: entityType.dataProperties ? entityType.dataProperties.map(function (property) {
-                    return {
-                        name: property.name,
-                        type: property.dataType
-                    };
-                }) : null,
-                associations: entityType.navigationProperties ? entityType.navigationProperties.map(function (nav) {
-                    var entityTypeNames = nav.entityTypeName.split(':#');
-                    var entityTypeName = entityTypeNames[1] + '.' + entityTypeNames[0];
-                    return {
-                        type: nav.isScalar ? 'hasOne' : 'hasMany',
-                        model: entityTypeName,
-                        associatedName: nav.name,
-                        name: nav.name
-                    };
-                }) : null,
-                idProperty: 'Id'
-            });
-        }
+        if (onCreateModel)
+            onCreateModel(entityType);
 
     }
 

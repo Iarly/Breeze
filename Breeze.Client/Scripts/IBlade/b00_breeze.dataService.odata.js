@@ -9,15 +9,15 @@
         define(["breeze"], factory);
     }
 }(function (breeze) {
-    
+
     var core = breeze.core;
- 
+
     var MetadataStore = breeze.MetadataStore;
     var JsonResultsAdapter = breeze.JsonResultsAdapter;
     var DataProperty = breeze.DataProperty;
-    
+
     var OData;
-    
+
     var ctor = function () {
         this.name = "OData";
     };
@@ -28,13 +28,13 @@
         OData = core.requireLib("OData", "Needed to support remote OData services");
         OData.jsonHandler.recognizeDates = true;
     };
-    
-    
+
+
     fn.executeQuery = function (mappingContext) {
-    
+
         var deferred = Q.defer();
         var url = mappingContext.getUrl();
-        
+
         var paramSeparation = '?';
         if (url.indexOf('?') > -1)
             paramSeparation = '&';
@@ -93,7 +93,7 @@
         //);
         return deferred.promise;
     };
-    
+
 
     fn.fetchMetadata = function (metadataStore, dataService) {
 
@@ -101,14 +101,19 @@
 
         var serviceName = dataService.serviceName;
         var url = dataService.makeUrl('$metadata');
-        
-        OData.read({
-                requestUri: url,
-                headers: {
-                    "Accept": "application/json",
-                }
-            },
-            function (data) {
+
+        if (dataService.customMetadataUrl) {
+            url = dataService.customMetadataUrl;
+        }
+
+        //OData.read({
+        //    requestUri: url,
+        //    headers: {
+        //        "Accept": "application/json",
+        //    }
+        //},
+        OData.read(url,
+            function (data, response) {
                 var statusCode = response.statusCode;
                 if ((!statusCode) || statusCode == 203 || statusCode >= 400) {
                     return deferred.reject(createError({ response: response }, url));
@@ -116,8 +121,26 @@
                 // data.dataServices.schema is an array of schemas. with properties of 
                 // entityContainer[], association[], entityType[], and namespace.
                 if (!data || !data.dataServices) {
-                    var error = new Error("Metadata query failed for: " + url);
-                    return deferred.reject(error);
+                    try {
+                        data = JSON.parse(response.body);
+                        if (data.schema) {
+                            data = {
+                                "version": "1.0",
+                                "dataServices":
+                                    {
+                                        "dataServiceVersion": "1.0",
+                                        "maxDataServiceVersion": "3.0",
+                                        "schema": [data.schema]
+                                    }
+                            };
+                        }
+                    }
+                    finally {
+                        if (!data || !data.dataServices) {
+                            var error = new Error("Metadata query failed for: " + url);
+                            return deferred.reject(error);
+                        }
+                    }
                 }
                 var csdlMetadata = data.dataServices;
 
@@ -146,7 +169,7 @@
 
     };
 
-    fn.getRoutePrefix = function(dataService){ return ''; /* see webApiODataCtor */}
+    fn.getRoutePrefix = function (dataService) { return ''; /* see webApiODataCtor */ }
 
     fn.saveChanges = function (saveContext, saveBundle) {
 
@@ -170,7 +193,7 @@
         var contentKeys = saveContext.contentKeys;
         var that = this;
         OData.request({
-            headers: { "DataServiceVersion": "2.0", "Accept": "application/json" },
+            headers: { "DataServiceVersion": "2.0" },
             requestUri: url,
             method: "POST",
             data: requestData
@@ -189,9 +212,9 @@
                     if ((!statusCode) || statusCode >= 400) {
                         return deferred.reject(createError(cr, url));
                     }
-                    
+
                     var contentId = cr.headers["Content-ID"];
-                    
+
                     var rawEntity = cr.data;
                     if (rawEntity) {
                         var tempKey = tempKeys[contentId];
@@ -208,7 +231,7 @@
                     } else {
                         var origEntity = contentKeys[contentId];
                         if (origEntity) //
-                        entities.push(origEntity);
+                            entities.push(origEntity);
                     }
                 });
             });
@@ -220,7 +243,7 @@
         return deferred.promise;
 
     };
- 
+
     fn.jsonResultsAdapter = new JsonResultsAdapter({
         name: "OData_default",
 
@@ -248,7 +271,7 @@
                 (propertyName === "EntityKey" && node.$type && core.stringStartsWith(node.$type, "System.Data"));
             return result;
         }
-        
+
     });
 
     function transformValue(prop, val) {
@@ -302,7 +325,7 @@
                     if (!inseredLink.entity.entityAspect.entityState.isAdded()
                         && !inseredLink.entity.entityAspect.entityState.isDeleted()) {
                         var linkRequest = { headers: { "Content-ID": id, "DataServiceVersion": "3.0" } };
-                        linkRequest.requestUri = _getEntityUri(prefix, entity) + "/$links/" + inseredLink.np.name;
+                        linkRequest.requestUri = _getEntityUri(baseUri, entity) + "/$links/" + inseredLink.np.name;
                         linkRequest.method = "POST";
 
                         var baseType = inseredLink.entity.entityType;
@@ -324,7 +347,7 @@
                             && !removedLink.entity.entityAspect.entityState.isDeleted()) {
                             var linkRequest = { headers: { "Content-ID": id, "DataServiceVersion": "3.0" } };
                             // DELETE /OData/OData.svc/Categories(1)/$links/Products(10)
-                            linkRequest.requestUri = _getEntityUri(prefix, aspect.entity)
+                            linkRequest.requestUri = _getEntityUri(baseUri, aspect.entity)
                                 + "/$links/" + removedLink.np.name + "(" + _getEntityId(removedLink.entity) + ")";
                             linkRequest.method = "DELETE";
                             linksRequest.push(linkRequest);
@@ -335,8 +358,7 @@
 
             if (aspect.entityState.isAdded()) {
                 var options = { readedAssociations: readedAssociations };
-                insertRequest(request, entity.entityType);
-                request.requestUri = routePrefix + entity.entityType.defaultResourceName;
+                insertRequest(request, entity.entityType, routePrefix);
                 request.method = "POST";
                 request.data = helper.unwrapInstance(entity, transformValue, options);
                 tempKeys[id] = aspect.getKey();
@@ -381,7 +403,7 @@
 
     }
 
-    function insertRequest(request, entityType) {
+    function insertRequest(request, entityType, routePrefix) {
         var lastBaseType = null;
         var sbaseType = entityType;
         var defaultResourceName = entityType.defaultResourceName;
@@ -396,7 +418,8 @@
             defaultResourceName = lastBaseType.defaultResourceName + "/" + namespace + "." + className;
         }
 
-        request.requestUri = defaultResourceName;
+        routePrefix = routePrefix || '';
+        request.requestUri = routePrefix + defaultResourceName;
     }
 
     function updateDeleteMergeRequest(request, aspect, baseUri, routePrefix) {
@@ -411,7 +434,7 @@
             request.headers["If-Match"] = extraMetadata.etag;
         }
     }
-   
+
     function createError(error, url) {
         // OData errors can have the message buried very deeply - and nonobviously
         // this code is tricky so be careful changing the response.body parsing.
@@ -463,14 +486,14 @@
 
     breeze.core.extend(webApiODataCtor.prototype, fn);
 
-    webApiODataCtor.prototype.getRoutePrefix = function(dataService){
+    webApiODataCtor.prototype.getRoutePrefix = function (dataService) {
         // Get the routePrefix from a Web API OData service name.
         // Web API OData requires inclusion of the routePrefix in the Uri of a batch subrequest
         // By convention, Breeze developers add the Web API OData routePrefix to the end of the serviceName
         // e.g. the routePrefix in 'http://localhost:55802/odata/' is 'odata/'
         var segments = dataService.serviceName.split('/');
-        var last = segments.length-1 ;
-        var routePrefix = segments[last] || segments[last-1];
+        var last = segments.length - 1;
+        var routePrefix = segments[last] || segments[last - 1];
         routePrefix = routePrefix ? routePrefix += '/' : '';
         return routePrefix;
     };
